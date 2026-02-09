@@ -2,7 +2,8 @@ import { formatName } from '../utils/stringUtils';
 import { Card } from './Card';
 import { Avatar } from './Avatar';
 import { Button } from './Button';
-// This file is missing imports for Card, Button, Avatar, and formatName
+// Test file demonstrating auto-import functionality
+// Originally missing imports for Card, Button, Avatar, and formatName
 
 export function UserProfile() {
   const handleClick = () => {

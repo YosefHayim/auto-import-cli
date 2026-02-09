@@ -144,13 +144,26 @@ export class AutoImportCli {
     for (const [filePath, imports] of fileMap.entries()) {
       let content = await fs.readFile(filePath, 'utf-8');
       
-      // Find the position to insert imports (after existing imports)
+      // Find the position to insert imports (after existing imports or file-level comments)
       const lines = content.split('\n');
       let lastImportLine = -1;
+      let firstCodeLine = 0;
       
+      // Skip file-level comments and find first import or code
       for (let i = 0; i < lines.length; i++) {
-        if (lines[i].trim().startsWith('import ')) {
+        const trimmedLine = lines[i].trim();
+        if (trimmedLine.startsWith('//') || 
+            trimmedLine.startsWith('/*') || 
+            trimmedLine.startsWith('*') ||
+            trimmedLine === '') {
+          firstCodeLine = i + 1;
+          continue;
+        }
+        if (trimmedLine.startsWith('import ')) {
           lastImportLine = i;
+        } else if (trimmedLine.length > 0 && lastImportLine === -1) {
+          // Found code without imports
+          break;
         }
       }
 
@@ -168,7 +181,7 @@ export class AutoImportCli {
 
       // Insert imports
       if (newImports.length > 0) {
-        const insertIndex = lastImportLine + 1;
+        const insertIndex = lastImportLine >= 0 ? lastImportLine + 1 : firstCodeLine;
         lines.splice(insertIndex, 0, ...newImports);
         
         const newContent = lines.join('\n');

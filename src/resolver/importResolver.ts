@@ -148,8 +148,8 @@ export class ImportResolver {
         .filter(s => s.length > 0);
       
       names.forEach(name => {
-        // Handle "as" syntax: export { x as y }
-        const parts = name.split(/\s+as\s+/);
+      // Handle "as" syntax: export { x as y }
+        const parts = name.split(/\s*as\s*/i);
         exports.push({
           name: parts[parts.length - 1],
           source: filePath,
