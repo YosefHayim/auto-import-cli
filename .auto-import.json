@@ -1,0 +1,16 @@
+{
+  "extensions": [".ts", ".tsx", ".js", ".jsx"],
+  "ignore": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/.next/**",
+    "**/coverage/**"
+  ],
+  "dryRun": false,
+  "verbose": false
+}

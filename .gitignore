@@ -9,6 +9,9 @@ dev-debug.log
 # Dependency directories
 node_modules/
 
+# Build output
+dist/
+
 # Environment variables
 .env
 
@@ -26,4 +29,5 @@ node_modules/
 
 # Task files
 # tasks.json
-# tasks/ 
+# tasks/
+ 

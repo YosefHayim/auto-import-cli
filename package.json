@@ -1,5 +1,43 @@
 {
+  "name": "auto-import-cli",
+  "version": "1.0.0",
+  "description": "Open source CLI tool that automatically scans each file in your project and imports missing imports of Components, functions, etc.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "auto-import": "./bin/auto-import.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node bin/auto-import.js",
+    "test": "echo \"Tests not yet implemented\" && exit 0",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "import",
+    "auto-import",
+    "cli",
+    "typescript",
+    "javascript",
+    "ast",
+    "code-quality"
+  ],
+  "author": "Yosef Hayim Sabag",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YosefHayim/auto-import-cli"
+  },
   "dependencies": {
-    "glob": "^13.0.0"
+    "@types/node": "^25.2.2",
+    "chalk": "^5.6.2",
+    "commander": "^14.0.3",
+    "glob": "^13.0.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
