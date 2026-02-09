@@ -27,7 +27,18 @@ dist/
 # OS specific
 .DS_Store
 
-# Task files
-# tasks.json
-# tasks/
- 
+# AI tool configs
+.ai/
+.taskmaster/
+.clinerules/
+.cursor/
+.gemini/
+CLAUDE.md
+GEMINI.md
+progress-project.md
+
+# Debug logs
+firebase-debug.log
+
+# Bun
+bun.lock

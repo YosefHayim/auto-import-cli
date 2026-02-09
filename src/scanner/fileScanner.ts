@@ -15,7 +15,7 @@ export interface ScannedFile {
 }
 
 export class FileScanner {
-  private defaultExtensions = ['.ts', '.tsx', '.js', '.jsx', '.vue', '.svelte', '.astro'];
+  private defaultExtensions = ['.ts', '.tsx', '.js', '.jsx', '.vue', '.svelte', '.astro', '.py'];
   private defaultIgnore = [
     '**/node_modules/**',
     '**/dist/**',
@@ -23,6 +23,9 @@ export class FileScanner {
     '**/.next/**',
     '**/.git/**',
     '**/coverage/**',
+    '**/__pycache__/**',
+    '**/.venv/**',
+    '**/venv/**',
   ];
 
   async scan(options: ScanOptions = {}): Promise<ScannedFile[]> {

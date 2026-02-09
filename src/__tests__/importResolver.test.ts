@@ -1,4 +1,6 @@
-import { ImportResolver } from '@/resolver/importResolver';
+import { ImportResolver, PathAlias } from '@/resolver/importResolver';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 
 describe('ImportResolver', () => {
   it('should parse exports from a file', () => {
@@ -13,7 +15,7 @@ export type TestType = string;
     const resolver = new ImportResolver({ projectRoot: '/test' });
     
     // Access private method for testing (use type assertion)
-    const parseExports = (resolver as any).parseExports.bind(resolver);
+    const parseExports = (resolver as any).parseExportsLegacy.bind(resolver);
     const exports = parseExports(content, '/test/file.ts');
     
     expect(exports).toHaveLength(5);
@@ -30,7 +32,7 @@ export default function MyComponent() {}
 `;
 
     const resolver = new ImportResolver({ projectRoot: '/test' });
-    const parseExports = (resolver as any).parseExports.bind(resolver);
+    const parseExports = (resolver as any).parseExportsLegacy.bind(resolver);
     const exports = parseExports(content, '/test/file.ts');
     
     expect(exports[0].isDefault).toBe(true);
@@ -45,7 +47,7 @@ export { foo, baz };
 `;
 
     const resolver = new ImportResolver({ projectRoot: '/test' });
-    const parseExports = (resolver as any).parseExports.bind(resolver);
+    const parseExports = (resolver as any).parseExportsLegacy.bind(resolver);
     const exports = parseExports(content, '/test/file.ts');
     
     expect(exports.some((e: any) => e.name === 'foo')).toBe(true);
@@ -76,5 +78,129 @@ export { foo, baz };
       '/test/components/ui/Button.tsx'
     );
     expect(subDirPath).toBe('./ui/Button');
+  });
+
+  describe('path alias resolution', () => {
+    it('should prefer alias paths over relative paths when aliases are loaded', () => {
+      const resolver = new ImportResolver({ projectRoot: '/project' });
+
+      (resolver as any).pathAliases = [
+        { pattern: '@/*', prefix: '@/', targetPrefix: '/project/src/' },
+      ] satisfies PathAlias[];
+
+      const getRelativeImportPath = (resolver as any).getRelativeImportPath.bind(resolver);
+
+      const result = getRelativeImportPath(
+        '/project/src/cli/autoImportCli.ts',
+        '/project/src/parser/astParser.ts'
+      );
+      expect(result).toBe('@/parser/astParser');
+    });
+
+    it('should fall back to relative path when no alias matches', () => {
+      const resolver = new ImportResolver({ projectRoot: '/project' });
+
+      (resolver as any).pathAliases = [
+        { pattern: '@/*', prefix: '@/', targetPrefix: '/project/src/' },
+      ] satisfies PathAlias[];
+
+      const getRelativeImportPath = (resolver as any).getRelativeImportPath.bind(resolver);
+
+      const result = getRelativeImportPath(
+        '/project/src/cli/autoImportCli.ts',
+        '/project/lib/utils.ts'
+      );
+      expect(result).toBe('../../lib/utils');
+    });
+
+    it('should resolve getAliasImportPath correctly', () => {
+      const resolver = new ImportResolver({ projectRoot: '/project' });
+
+      (resolver as any).pathAliases = [
+        { pattern: '@components/*', prefix: '@components/', targetPrefix: '/project/src/components/' },
+        { pattern: '@/*', prefix: '@/', targetPrefix: '/project/src/' },
+      ] satisfies PathAlias[];
+
+      const getAliasImportPath = (resolver as any).getAliasImportPath.bind(resolver);
+
+      expect(getAliasImportPath('/project/src/components/Button.tsx')).toBe('@components/Button');
+      expect(getAliasImportPath('/project/src/utils/helpers.ts')).toBe('@/utils/helpers');
+      expect(getAliasImportPath('/other/path/file.ts')).toBeNull();
+    });
+
+    it('should prefer more specific aliases (longer prefix)', () => {
+      const resolver = new ImportResolver({ projectRoot: '/project' });
+
+      (resolver as any).pathAliases = [
+        { pattern: '@components/*', prefix: '@components/', targetPrefix: '/project/src/components/' },
+        { pattern: '@/*', prefix: '@/', targetPrefix: '/project/src/' },
+      ] satisfies PathAlias[];
+
+      const getAliasImportPath = (resolver as any).getAliasImportPath.bind(resolver);
+
+      expect(getAliasImportPath('/project/src/components/Button.tsx')).toBe('@components/Button');
+    });
+
+    it('should load aliases from tsconfig.json via buildExportCache', async () => {
+      const tmpDir = path.join(process.cwd(), 'tests', '_tmp_alias_test');
+      await fs.mkdir(tmpDir, { recursive: true });
+      await fs.writeFile(path.join(tmpDir, 'tsconfig.json'), JSON.stringify({
+        compilerOptions: {
+          baseUrl: '.',
+          paths: {
+            '@/*': ['src/*'],
+            '@utils/*': ['src/utils/*'],
+          },
+        },
+      }));
+
+      const srcDir = path.join(tmpDir, 'src', 'utils');
+      await fs.mkdir(srcDir, { recursive: true });
+      await fs.writeFile(path.join(srcDir, 'helpers.ts'), 'export function helper() {}');
+
+      try {
+        const resolver = new ImportResolver({ projectRoot: tmpDir });
+        await resolver.buildExportCache();
+
+        const aliases = resolver.getPathAliases();
+        expect(aliases.length).toBe(2);
+        expect(aliases.some(a => a.pattern === '@utils/*')).toBe(true);
+        expect(aliases.some(a => a.pattern === '@/*')).toBe(true);
+
+        const resolution = resolver.resolveImport('helper', path.join(tmpDir, 'src', 'app.ts'));
+        expect(resolution).not.toBeNull();
+        expect(resolution!.source).toBe('@utils/helpers');
+      } finally {
+        await fs.rm(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should skip alias resolution when useAliases is false', async () => {
+      const tmpDir = path.join(process.cwd(), 'tests', '_tmp_noalias_test');
+      await fs.mkdir(tmpDir, { recursive: true });
+      await fs.writeFile(path.join(tmpDir, 'tsconfig.json'), JSON.stringify({
+        compilerOptions: {
+          baseUrl: '.',
+          paths: { '@/*': ['src/*'] },
+        },
+      }));
+
+      const srcDir = path.join(tmpDir, 'src');
+      await fs.mkdir(srcDir, { recursive: true });
+      await fs.writeFile(path.join(srcDir, 'util.ts'), 'export function doStuff() {}');
+
+      try {
+        const resolver = new ImportResolver({ projectRoot: tmpDir, useAliases: false });
+        await resolver.buildExportCache();
+
+        expect(resolver.getPathAliases()).toHaveLength(0);
+
+        const resolution = resolver.resolveImport('doStuff', path.join(tmpDir, 'src', 'app.ts'));
+        expect(resolution).not.toBeNull();
+        expect(resolution!.source).toBe('./util');
+      } finally {
+        await fs.rm(tmpDir, { recursive: true, force: true });
+      }
+    });
   });
 });
