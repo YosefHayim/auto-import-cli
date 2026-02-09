@@ -1,0 +1,33 @@
+# Source files (publish dist only)
+src/
+tsconfig.json
+
+# Tests
+tests/
+
+# Development files
+.env
+.env.example
+*.log
+.taskmaster/
+.clinerules/
+.cursor/
+.github/
+.gemini/
+.ai/
+
+# Documentation for development
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+progress-project.md
+template-ui.pen
+docs/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
