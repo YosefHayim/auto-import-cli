@@ -1,4 +1,4 @@
-import { FrameworkParser } from '../parser/frameworkParser';
+import { FrameworkParser } from '@/parser/frameworkParser';
 
 describe('FrameworkParser', () => {
   let parser: FrameworkParser;

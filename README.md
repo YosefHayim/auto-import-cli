@@ -6,12 +6,14 @@ Open source CLI tool that automatically scans each file in your project and impo
 
 - 🔍 **Automatic Scanning**: Scans all TypeScript/JavaScript files in your project
 - 🎯 **Smart Detection**: Identifies missing imports using AST parsing
+- 📦 **Function Support**: Detects both JSX components AND plain TypeScript/JavaScript functions
 - 🔗 **Import Resolution**: Finds the source of components and functions across your codebase
 - 🚀 **Fast & Efficient**: Lightweight regex-based parser for quick analysis
 - 🎨 **Beautiful CLI**: Colorful terminal output with detailed feedback
 - 🔧 **Configurable**: Support for custom extensions, ignore patterns, and more
 - 🧪 **Dry Run Mode**: Preview changes before applying them
 - 🌐 **Multi-Framework**: Supports Vue.js, Svelte, Astro, React, and more
+- 🎯 **Path Aliases**: Uses `@/` path aliases instead of relative imports in source code
 
 ## Installation
 
@@ -110,8 +112,9 @@ Create a `.auto-import.json` file in your project root:
 
 ## Examples
 
-### Before
+### JSX Components
 
+Before:
 ```typescript
 // components/UserCard.tsx
 
@@ -125,8 +128,7 @@ export function UserCard() {
 }
 ```
 
-### After Running `auto-import`
-
+After running `auto-import`:
 ```typescript
 // components/UserCard.tsx
 import { Card } from './Card';
@@ -142,6 +144,36 @@ export function UserCard() {
   );
 }
 ```
+
+### Plain TypeScript Functions
+
+Before:
+```typescript
+// services/calculator.ts
+
+const total = calculateSum(10, 20);
+const isValid = validateEmail('test@example.com');
+const price = formatCurrency(29.99);
+```
+
+After running `auto-import`:
+```typescript
+// services/calculator.ts
+import { calculateSum } from './utils';
+import { validateEmail } from './validators';
+import { formatCurrency } from './formatters';
+
+const total = calculateSum(10, 20);
+const isValid = validateEmail('test@example.com');
+const price = formatCurrency(29.99);
+```
+
+### What Gets Detected
+
+✅ **JSX Components**: `<Card>`, `<Button>`, `<Avatar>`
+✅ **Function Calls**: `calculateSum()`, `formatName()`, `validateEmail()`
+❌ **Method Calls**: `obj.method()` (filtered out)
+❌ **Built-in Types**: `Array`, `Object`, `String` (filtered out)
 
 ## Use Case: Saving AI Agent Tokens
 

@@ -2,10 +2,10 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { FileScanner } from '../scanner/fileScanner.js';
-import { AstParser } from '../parser/astParser.js';
-import { ImportResolver } from '../resolver/importResolver.js';
-import { FrameworkParser } from '../parser/frameworkParser.js';
+import { FileScanner } from '@/scanner/fileScanner.js';
+import { AstParser } from '@/parser/astParser.js';
+import { ImportResolver } from '@/resolver/importResolver.js';
+import { FrameworkParser } from '@/parser/frameworkParser.js';
 
 export interface CliOptions {
   dryRun?: boolean;

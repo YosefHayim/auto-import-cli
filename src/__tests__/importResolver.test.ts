@@ -1,4 +1,4 @@
-import { ImportResolver } from '../resolver/importResolver';
+import { ImportResolver } from '@/resolver/importResolver';
 
 describe('ImportResolver', () => {
   it('should parse exports from a file', () => {

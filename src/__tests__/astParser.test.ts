@@ -1,4 +1,4 @@
-import { AstParser } from '../parser/astParser';
+import { AstParser } from '@/parser/astParser';
 
 describe('AstParser', () => {
   let parser: AstParser;

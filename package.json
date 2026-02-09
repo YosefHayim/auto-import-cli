@@ -9,7 +9,7 @@
     "auto-import": "./bin/auto-import.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsc-alias",
     "dev": "tsc --watch",
     "start": "node bin/auto-import.js",
     "test": "jest",
@@ -42,7 +42,8 @@
   "devDependencies": {
     "@types/jest": "^29.5.14",
     "jest": "^29.7.0",
-    "ts-jest": "^29.2.5"
+    "ts-jest": "^29.2.5",
+    "tsc-alias": "^1.8.16"
   },
   "engines": {
     "node": ">=18.0.0"
