@@ -5,6 +5,7 @@ import * as path from 'path';
 import { FileScanner } from '../scanner/fileScanner.js';
 import { AstParser } from '../parser/astParser.js';
 import { ImportResolver } from '../resolver/importResolver.js';
+import { FrameworkParser } from '../parser/frameworkParser.js';
 
 export interface CliOptions {
   dryRun?: boolean;
@@ -26,11 +27,13 @@ export interface MissingImport {
 export class AutoImportCli {
   private scanner: FileScanner;
   private parser: AstParser;
+  private frameworkParser: FrameworkParser;
   private resolver?: ImportResolver;
 
   constructor() {
     this.scanner = new FileScanner();
     this.parser = new AstParser();
+    this.frameworkParser = new FrameworkParser();
   }
 
   async run(directory: string, options: CliOptions = {}): Promise<void> {
@@ -68,13 +71,22 @@ export class AutoImportCli {
     let filesWithIssues = 0;
 
     for (const file of files) {
-      const parseResult = this.parser.parse(file.content);
+      // Handle framework-specific files (Vue, Svelte, Astro)
+      const frameworkResult = this.frameworkParser.parseFrameworkFile(file.content, file.ext);
+      const contentToParse = frameworkResult.isFrameworkFile 
+        ? frameworkResult.scriptContent 
+        : file.content;
+      
+      const parseResult = this.parser.parse(contentToParse);
       
       if (parseResult.missingImports.length > 0) {
         filesWithIssues++;
         
         if (options.verbose) {
           console.log(chalk.yellow(`\n📄 ${path.relative(projectRoot, file.path)}`));
+          if (frameworkResult.isFrameworkFile) {
+            console.log(chalk.gray(`   (${frameworkResult.framework} component)`));
+          }
         }
 
         for (const identifier of parseResult.missingImports) {
@@ -143,30 +155,11 @@ export class AutoImportCli {
     // Apply fixes to each file
     for (const [filePath, imports] of fileMap.entries()) {
       let content = await fs.readFile(filePath, 'utf-8');
+      const ext = path.extname(filePath);
       
-      // Find the position to insert imports (after existing imports or file-level comments)
-      const lines = content.split('\n');
-      let lastImportLine = -1;
-      let firstCodeLine = 0;
+      // Check if this is a framework file
+      const frameworkResult = this.frameworkParser.parseFrameworkFile(content, ext);
       
-      // Skip file-level comments and find first import or code
-      for (let i = 0; i < lines.length; i++) {
-        const trimmedLine = lines[i].trim();
-        if (trimmedLine.startsWith('//') || 
-            trimmedLine.startsWith('/*') || 
-            trimmedLine.startsWith('*') ||
-            trimmedLine === '') {
-          firstCodeLine = i + 1;
-          continue;
-        }
-        if (trimmedLine.startsWith('import ')) {
-          lastImportLine = i;
-        } else if (trimmedLine.length > 0 && lastImportLine === -1) {
-          // Found code without imports
-          break;
-        }
-      }
-
       // Generate import statements
       const newImports: string[] = [];
       for (const item of imports) {
@@ -179,14 +172,47 @@ export class AutoImportCli {
         }
       }
 
-      // Insert imports
-      if (newImports.length > 0) {
+      if (newImports.length === 0) continue;
+
+      let newContent: string;
+
+      if (frameworkResult.isFrameworkFile) {
+        // For framework files, use the framework parser to insert imports
+        newContent = this.frameworkParser.insertImportsIntoFramework(
+          content,
+          newImports,
+          frameworkResult
+        );
+      } else {
+        // For regular JS/TS files, use the original method
+        const lines = content.split('\n');
+        let lastImportLine = -1;
+        let firstCodeLine = 0;
+        
+        // Skip file-level comments and find first import or code
+        for (let i = 0; i < lines.length; i++) {
+          const trimmedLine = lines[i].trim();
+          if (trimmedLine.startsWith('//') || 
+              trimmedLine.startsWith('/*') || 
+              trimmedLine.startsWith('*') ||
+              trimmedLine === '') {
+            firstCodeLine = i + 1;
+            continue;
+          }
+          if (trimmedLine.startsWith('import ')) {
+            lastImportLine = i;
+          } else if (trimmedLine.length > 0 && lastImportLine === -1) {
+            // Found code without imports
+            break;
+          }
+        }
+
         const insertIndex = lastImportLine >= 0 ? lastImportLine + 1 : firstCodeLine;
         lines.splice(insertIndex, 0, ...newImports);
-        
-        const newContent = lines.join('\n');
-        await fs.writeFile(filePath, newContent, 'utf-8');
+        newContent = lines.join('\n');
       }
+
+      await fs.writeFile(filePath, newContent, 'utf-8');
     }
   }
 }
@@ -201,7 +227,7 @@ export function createCli(): Command {
     .argument('[directory]', 'Directory to scan', '.')
     .option('-d, --dry-run', 'Show what would be changed without making changes')
     .option('-v, --verbose', 'Show detailed output')
-    .option('-e, --extensions <extensions>', 'File extensions to scan (comma-separated)', '.ts,.tsx,.js,.jsx')
+    .option('-e, --extensions <extensions>', 'File extensions to scan (comma-separated)', '.ts,.tsx,.js,.jsx,.vue,.svelte,.astro')
     .option('-i, --ignore <patterns>', 'Patterns to ignore (comma-separated)')
     .option('-c, --config <path>', 'Path to config file')
     .action(async (directory: string, options: CliOptions) => {

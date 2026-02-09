@@ -15,7 +15,7 @@ export interface ScannedFile {
 }
 
 export class FileScanner {
-  private defaultExtensions = ['.ts', '.tsx', '.js', '.jsx'];
+  private defaultExtensions = ['.ts', '.tsx', '.js', '.jsx', '.vue', '.svelte', '.astro'];
   private defaultIgnore = [
     '**/node_modules/**',
     '**/dist/**',
