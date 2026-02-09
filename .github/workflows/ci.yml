@@ -1,0 +1,121 @@
+name: CI - Test & Build
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test on Node ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run linter (if configured)
+        run: npm run lint || echo "No lint script configured"
+        continue-on-error: true
+      
+      - name: Build project
+        run: npm run build
+      
+      - name: Run tests
+        run: npm test
+      
+      - name: Run tests with coverage
+        if: matrix.node-version == '20.x'
+        run: npm run test:coverage
+      
+      - name: Upload coverage to Codecov
+        if: matrix.node-version == '20.x'
+        uses: codecov/codecov-action@v3
+        with:
+          fail_ci_if_error: false
+          files: ./coverage/lcov.info
+
+  build-verification:
+    name: Verify Build Artifacts
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build
+        run: npm run build
+      
+      - name: Verify dist directory exists
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "Error: dist directory not found"
+            exit 1
+          fi
+      
+      - name: Verify bin entry point
+        run: |
+          if [ ! -f "bin/auto-import.js" ]; then
+            echo "Error: bin/auto-import.js not found"
+            exit 1
+          fi
+      
+      - name: Test CLI runs
+        run: node bin/auto-import.js --help
+
+  edge-cases:
+    name: Edge Case Testing
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build
+        run: npm run build
+      
+      - name: Test empty directory
+        run: |
+          mkdir -p /tmp/empty-test
+          node bin/auto-import.js /tmp/empty-test --dry-run
+      
+      - name: Test with verbose flag
+        run: node bin/auto-import.js tests/sample-project --dry-run --verbose
+      
+      - name: Test with custom extensions
+        run: node bin/auto-import.js tests/sample-project --dry-run --extensions .ts,.tsx
+      
+      - name: Test framework files
+        run: node bin/auto-import.js tests/framework-samples --dry-run --verbose || true

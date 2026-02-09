@@ -1,0 +1,44 @@
+name: ❓ Question
+description: Ask a question about using auto-import-cli
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question? We're here to help!
+        
+        **Before asking:** Please check the [README](https://github.com/YosefHayim/auto-import-cli#readme) and existing [issues](https://github.com/YosefHayim/auto-import-cli/issues).
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: What would you like to know?
+      placeholder: How do I...?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What are you trying to accomplish?
+      placeholder: I'm trying to...
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: What Have You Tried?
+      description: What have you already tried?
+      placeholder: I've tried...
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have read the documentation
+          required: true
+        - label: I have searched existing issues and discussions
+          required: true
