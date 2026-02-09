@@ -188,8 +188,47 @@ export function createCli(): Command {
     .option('--no-alias', 'Disable tsconfig path alias resolution')
     .action(async (directory: string, options: CliOptions) => {
       try {
+        const configPath = path.resolve(directory, options.config || '.auto-import.json');
+        let fileConfig: Record<string, any> | null = null;
+        try {
+          const raw = await fs.readFile(configPath, 'utf-8');
+          fileConfig = JSON.parse(raw);
+        } catch { /* no config file */ }
+
+        if (fileConfig) {
+          if (!options.extensions && fileConfig.extensions) {
+            options.extensions = fileConfig.extensions.join(',');
+          }
+          if (!options.ignore && fileConfig.ignore) {
+            options.ignore = fileConfig.ignore.join(',');
+          }
+          if (options.noAlias === undefined && fileConfig.useAliases !== undefined) {
+            options.noAlias = !fileConfig.useAliases;
+          }
+          if (options.dryRun === undefined && fileConfig.dryRun) {
+            options.dryRun = fileConfig.dryRun;
+          }
+          if (options.verbose === undefined && fileConfig.verbose) {
+            options.verbose = fileConfig.verbose;
+          }
+        }
+
         const cli = new AutoImportCli();
         await cli.run(directory, options);
+      } catch (error) {
+        console.error(chalk.red('\n❌ Error:'), error);
+        process.exit(1);
+      }
+    });
+
+  program
+    .command('init')
+    .description('Interactive setup wizard — configure auto-import for your project')
+    .argument('[directory]', 'Project directory', '.')
+    .action(async (directory: string) => {
+      try {
+        const { runSetupWizard } = await import('./setupWizard.js');
+        await runSetupWizard(path.resolve(directory));
       } catch (error) {
         console.error(chalk.red('\n❌ Error:'), error);
         process.exit(1);

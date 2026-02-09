@@ -15,3 +15,7 @@ export type { FrameworkParseResult } from './parser/frameworkParser.js';
 export type { ExportInfo, ResolverOptions, PathAlias } from './resolver/importResolver.js';
 export type { CliOptions, MissingImport } from './cli/autoImportCli.js';
 export type { LanguagePlugin } from './plugins/languagePlugin.js';
+
+// Setup wizard
+export { runSetupWizard, detectFileExtensions, detectHusky, generateConfig, loadConfigFile } from './cli/setupWizard.js';
+export type { AutoImportConfig } from './cli/setupWizard.js';
