@@ -11,6 +11,7 @@ Open source CLI tool that automatically scans each file in your project and impo
 - 🎨 **Beautiful CLI**: Colorful terminal output with detailed feedback
 - 🔧 **Configurable**: Support for custom extensions, ignore patterns, and more
 - 🧪 **Dry Run Mode**: Preview changes before applying them
+- 🌐 **Multi-Framework**: Supports Vue.js, Svelte, Astro, React, and more
 
 ## Installation
 
@@ -188,11 +189,75 @@ npx husky add .husky/pre-commit "npm run fix-imports"
 
 ## Supported File Types
 
+### JavaScript/TypeScript
 - TypeScript (`.ts`, `.tsx`)
 - JavaScript (`.js`, `.jsx`)
 - React components
 - Node.js modules
 - ES6 modules
+
+### Frontend Frameworks
+- **Vue.js** (`.vue`) - Single File Components with `<script>` and `<script setup>`
+- **Svelte** (`.svelte`) - Svelte components
+- **Astro** (`.astro`) - Astro components with frontmatter
+
+The tool intelligently extracts script sections from framework-specific files and adds imports in the correct location while preserving the file structure.
+
+## Framework Examples
+
+### Vue.js
+
+Before:
+```vue
+<script setup>
+
+const userName = formatName('John', 'Doe');
+</script>
+```
+
+After running `auto-import`:
+```vue
+<script setup>
+import { formatName } from './utils';
+const userName = formatName('John', 'Doe');
+</script>
+```
+
+### Svelte
+
+Before:
+```svelte
+<script>
+
+let formatted = formatDate(new Date());
+</script>
+```
+
+After:
+```svelte
+<script>
+import { formatDate } from './utils';
+let formatted = formatDate(new Date());
+</script>
+```
+
+### Astro
+
+Before:
+```astro
+---
+
+const title = capitalize('hello world');
+---
+```
+
+After:
+```astro
+---
+import { capitalize } from './utils';
+const title = capitalize('hello world');
+---
+```
 
 ## Limitations
 
