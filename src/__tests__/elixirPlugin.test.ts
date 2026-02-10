@@ -302,7 +302,7 @@ end`;
   describe('generateImportStatement', () => {
     it('should generate alias for PascalCase module identifiers', () => {
       const stmt = plugin.generateImportStatement('User', '/project/lib/my_app/accounts/user.ex', false);
-      expect(stmt).toBe('alias MyApp.Accounts.User.User');
+      expect(stmt).toBe('alias MyApp.Accounts.User');
     });
 
     it('should generate import with only: for function identifiers', () => {

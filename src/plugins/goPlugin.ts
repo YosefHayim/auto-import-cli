@@ -62,8 +62,7 @@ export class GoPlugin implements LanguagePlugin {
         }
       }
 
-      // PascalCase identifiers — Go exported symbols
-      const pascalRegex = /(?<![.\w])([A-Z][a-zA-Z0-9]+)\b/g;
+      const pascalRegex = /(?<![.\w])([A-Z][a-zA-Z0-9]*)\b/g;
       while ((match = pascalRegex.exec(line)) !== null) {
         const name = match[1];
         const before = line.substring(0, match.index);

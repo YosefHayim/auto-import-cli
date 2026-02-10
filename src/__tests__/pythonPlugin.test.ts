@@ -323,7 +323,7 @@ MAX_SIZE = 100`;
       expect(exports.some(e => e.name === 'MAX_SIZE')).toBe(true);
     });
 
-    it('should return empty when __all__ is empty list', () => {
+    it('should fall back to all exports when __all__ is empty list', () => {
       const content = `__all__ = []
 
 class MyClass:
@@ -332,7 +332,9 @@ class MyClass:
 def my_func():
     pass`;
       const exports = plugin.parseExports(content, '/project/module.py');
-      expect(exports).toHaveLength(0);
+      expect(exports).toHaveLength(2);
+      expect(exports.some(e => e.name === 'MyClass')).toBe(true);
+      expect(exports.some(e => e.name === 'my_func')).toBe(true);
     });
   });
 

@@ -116,19 +116,21 @@ export class PythonPlugin implements LanguagePlugin {
   }
 
   private parseDunderAll(content: string): Set<string> | null {
-    // Match __all__ = [...] or __all__ = (...) including multi-line
-    const allRegex = /^__all__\s*=\s*[\[(]([\s\S]*?)[\])]/m;
+    const allRegex = /^__all__(?:\s*:\s*[^=]+)?\s*=\s*[\[(]([\s\S]*?)[\])]/m;
     const match = allRegex.exec(content);
     if (!match) {
       return null;
     }
 
     const names = new Set<string>();
-    // Extract quoted strings (single or double quotes)
     const nameRegex = /["'](\w+)["']/g;
     let nameMatch;
     while ((nameMatch = nameRegex.exec(match[1])) !== null) {
       names.add(nameMatch[1]);
+    }
+
+    if (names.size === 0) {
+      return null;
     }
 
     return names;

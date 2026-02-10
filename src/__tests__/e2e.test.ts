@@ -1,6 +1,7 @@
 import { execFileSync } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const BIN = path.join(ROOT, 'bin', 'import-pilot.js');
@@ -9,8 +10,8 @@ const SAMPLE_PROJECT = path.join(ROOT, 'tests', 'sample-project');
 const E2E_ALIAS_FIXTURE = path.join(ROOT, 'tests', 'e2e-alias-fixture');
 const E2E_MIXED_FIXTURE = path.join(ROOT, 'tests', 'e2e-mixed-fixture');
 
-function run(args: string, options: { cwd?: string } = {}): string {
-  return execFileSync('node', [BIN, ...args.split(/\s+/).filter(Boolean)], {
+function run(args: string[], options: { cwd?: string } = {}): string {
+  return execFileSync(process.execPath, [BIN, ...args], {
     encoding: 'utf-8',
     cwd: options.cwd ?? ROOT,
     env: { ...process.env, FORCE_COLOR: '0' },
@@ -20,7 +21,11 @@ function run(args: string, options: { cwd?: string } = {}): string {
 function cleanReports(dir: string): void {
   for (const ext of ['.md', '.json', '.txt']) {
     const file = path.join(dir, `import-pilot-report${ext}`);
-    try { fs.unlinkSync(file); } catch { /* not present */ }
+    try {
+      fs.unlinkSync(file);
+    } catch (e: unknown) {
+      if (e instanceof Error && 'code' in e && (e as NodeJS.ErrnoException).code !== 'ENOENT') throw e;
+    }
   }
 }
 
@@ -41,7 +46,7 @@ afterEach(() => {
 describe('E2E: CLI pipeline', () => {
   describe('--help', () => {
     it('should display usage information', () => {
-      const output = run('--help');
+      const output = run(['--help']);
       expect(output).toContain('Usage: import-pilot');
       expect(output).toContain('--dry-run');
       expect(output).toContain('--verbose');
@@ -53,14 +58,14 @@ describe('E2E: CLI pipeline', () => {
 
   describe('--version', () => {
     it('should display the version number', () => {
-      const output = run('--version');
+      const output = run(['--version']);
       expect(output.trim()).toMatch(/^\d+\.\d+\.\d+$/);
     });
   });
 
   describe('--dry-run on sample-project', () => {
     it('should show summary with zero missing imports', () => {
-      const output = run(`--dry-run ${SAMPLE_PROJECT}`);
+      const output = run(['--dry-run', SAMPLE_PROJECT]);
       expect(output).toContain('Import Pilot');
       expect(output).toContain('Summary');
       expect(output).toContain('Total files scanned:');
@@ -72,7 +77,7 @@ describe('E2E: CLI pipeline', () => {
         path.join(SAMPLE_PROJECT, 'components', 'UserProfile.tsx'),
         'utf-8',
       );
-      run(`--dry-run ${SAMPLE_PROJECT}`);
+      run(['--dry-run', SAMPLE_PROJECT]);
       const after = fs.readFileSync(
         path.join(SAMPLE_PROJECT, 'components', 'UserProfile.tsx'),
         'utf-8',
@@ -83,7 +88,7 @@ describe('E2E: CLI pipeline', () => {
 
   describe('--verbose --dry-run', () => {
     it('should show per-file details when missing imports exist', () => {
-      const output = run(`--verbose --dry-run ${E2E_FIXTURE}`);
+      const output = run(['--verbose', '--dry-run', E2E_FIXTURE]);
       expect(output).toContain('pages/Home.tsx');
       expect(output).toContain('pages/About.tsx');
       expect(output).toContain('formatName');
@@ -92,7 +97,7 @@ describe('E2E: CLI pipeline', () => {
     });
 
     it('should show import suggestions with arrow notation', () => {
-      const output = run(`--verbose --dry-run ${E2E_FIXTURE}`);
+      const output = run(['--verbose', '--dry-run', E2E_FIXTURE]);
       expect(output).toContain('import {');
       expect(output).toContain("from '");
     });
@@ -100,7 +105,7 @@ describe('E2E: CLI pipeline', () => {
 
   describe('--report md --dry-run', () => {
     it('should create a markdown report file', () => {
-      run(`--dry-run --report md ${E2E_FIXTURE}`);
+      run(['--dry-run', '--report', 'md', E2E_FIXTURE]);
       const reportPath = path.join(E2E_FIXTURE, 'import-pilot-report.md');
       expect(fs.existsSync(reportPath)).toBe(true);
       const content = fs.readFileSync(reportPath, 'utf-8');
@@ -112,7 +117,7 @@ describe('E2E: CLI pipeline', () => {
 
   describe('--report json --dry-run', () => {
     it('should create a valid JSON report file', () => {
-      run(`--dry-run --report json ${E2E_FIXTURE}`);
+      run(['--dry-run', '--report', 'json', E2E_FIXTURE]);
       const reportPath = path.join(E2E_FIXTURE, 'import-pilot-report.json');
       expect(fs.existsSync(reportPath)).toBe(true);
       const content = fs.readFileSync(reportPath, 'utf-8');
@@ -126,7 +131,7 @@ describe('E2E: CLI pipeline', () => {
     });
 
     it('should include correct entry structure', () => {
-      run(`--dry-run --report json ${E2E_FIXTURE}`);
+      run(['--dry-run', '--report', 'json', E2E_FIXTURE]);
       const reportPath = path.join(E2E_FIXTURE, 'import-pilot-report.json');
       const data = JSON.parse(fs.readFileSync(reportPath, 'utf-8'));
       const entry = data.entries[0];
@@ -140,7 +145,7 @@ describe('E2E: CLI pipeline', () => {
 
   describe('--extensions filter', () => {
     it('should only scan .ts files when --extensions .ts is passed', () => {
-      const output = run(`--dry-run --extensions .ts ${E2E_FIXTURE}`);
+      const output = run(['--dry-run', '--extensions', '.ts', E2E_FIXTURE]);
       const match = output.match(/Found (\d+) files to analyze/);
       expect(match).not.toBeNull();
       const fileCount = parseInt(match![1]!, 10);
@@ -149,7 +154,7 @@ describe('E2E: CLI pipeline', () => {
     });
 
     it('should only scan .tsx files when --extensions .tsx is passed', () => {
-      const output = run(`--dry-run --extensions .tsx ${E2E_FIXTURE}`);
+      const output = run(['--dry-run', '--extensions', '.tsx', E2E_FIXTURE]);
       const match = output.match(/Found (\d+) files to analyze/);
       expect(match).not.toBeNull();
       const fileCount = parseInt(match![1]!, 10);
@@ -159,43 +164,44 @@ describe('E2E: CLI pipeline', () => {
 
   describe('--no-alias flag', () => {
     it('should complete successfully with --no-alias', () => {
-      const output = run(`--dry-run --no-alias ${E2E_FIXTURE}`);
+      const output = run(['--dry-run', '--no-alias', E2E_FIXTURE]);
       expect(output).toContain('Summary');
       expect(output).toContain('Total missing imports: 7');
       expect(output).toContain('Resolvable imports: 7');
     });
 
     it('should produce relative import paths (not alias paths) for fixture', () => {
-      const output = run(`--verbose --dry-run --no-alias ${E2E_FIXTURE}`);
+      const output = run(['--verbose', '--dry-run', '--no-alias', E2E_FIXTURE]);
       expect(output).toContain("from '../");
     });
   });
 
   describe('non-existent directory', () => {
     it('should scan zero files for a non-existent directory', () => {
-      const output = run(`--dry-run /tmp/__import_pilot_nonexistent_${Date.now()}`);
+      const nonexistent = path.join(os.tmpdir(), `__import_pilot_nonexistent_${Date.now()}`);
+      const output = run(['--dry-run', nonexistent]);
       expect(output).toContain('Found 0 files to analyze');
     });
   });
 
   describe('e2e-fixture: missing import detection', () => {
     it('should detect all 7 missing imports', () => {
-      const output = run(`--dry-run ${E2E_FIXTURE}`);
+      const output = run(['--dry-run', E2E_FIXTURE]);
       expect(output).toContain('Total missing imports: 7');
     });
 
     it('should resolve all 7 missing imports', () => {
-      const output = run(`--dry-run ${E2E_FIXTURE}`);
+      const output = run(['--dry-run', E2E_FIXTURE]);
       expect(output).toContain('Resolvable imports: 7');
     });
 
     it('should detect 2 files with missing imports', () => {
-      const output = run(`--dry-run ${E2E_FIXTURE}`);
+      const output = run(['--dry-run', E2E_FIXTURE]);
       expect(output).toContain('Files with missing imports: 2');
     });
 
     it('should detect specific identifiers in verbose mode', () => {
-      const output = run(`--verbose --dry-run ${E2E_FIXTURE}`);
+      const output = run(['--verbose', '--dry-run', E2E_FIXTURE]);
       const expectedIdentifiers = ['formatName', 'add', 'Header', 'Card', 'Button', 'formatDate'];
       for (const id of expectedIdentifiers) {
         expect(output).toContain(id);
@@ -203,7 +209,7 @@ describe('E2E: CLI pipeline', () => {
     });
 
     it('should suggest correct import sources', () => {
-      const output = run(`--verbose --dry-run ${E2E_FIXTURE}`);
+      const output = run(['--verbose', '--dry-run', E2E_FIXTURE]);
       expect(output).toContain("from '../utils/format'");
       expect(output).toContain("from '../utils/math'");
       expect(output).toContain("from '../components/Header'");
@@ -212,7 +218,7 @@ describe('E2E: CLI pipeline', () => {
     });
 
     it('should detect default export (Header) vs named exports', () => {
-      run(`--dry-run --report json ${E2E_FIXTURE}`);
+      run(['--dry-run', '--report', 'json', E2E_FIXTURE]);
       const reportPath = path.join(E2E_FIXTURE, 'import-pilot-report.json');
       const data = JSON.parse(fs.readFileSync(reportPath, 'utf-8'));
       const headerEntry = data.entries.find(
@@ -231,7 +237,7 @@ describe('E2E: CLI pipeline', () => {
 
   describe('--report txt --dry-run', () => {
     it('should create a text report file', () => {
-      run(`--dry-run --report txt ${E2E_FIXTURE}`);
+      run(['--dry-run', '--report', 'txt', E2E_FIXTURE]);
       const reportPath = path.join(E2E_FIXTURE, 'import-pilot-report.txt');
       expect(fs.existsSync(reportPath)).toBe(true);
       const content = fs.readFileSync(reportPath, 'utf-8');
@@ -242,89 +248,89 @@ describe('E2E: CLI pipeline', () => {
 
   describe('report cleanup verification', () => {
     it('should not leave report files when --report none (default)', () => {
-      run(`--dry-run ${E2E_FIXTURE}`);
+      run(['--dry-run', E2E_FIXTURE]);
       expect(fs.existsSync(path.join(E2E_FIXTURE, 'import-pilot-report.md'))).toBe(false);
       expect(fs.existsSync(path.join(E2E_FIXTURE, 'import-pilot-report.json'))).toBe(false);
       expect(fs.existsSync(path.join(E2E_FIXTURE, 'import-pilot-report.txt'))).toBe(false);
     });
   });
 
-   describe('output format consistency', () => {
-     it('should always show the Import Pilot banner', () => {
-       const output = run(`--dry-run ${E2E_FIXTURE}`);
-       expect(output).toContain('Import Pilot');
-     });
+  describe('output format consistency', () => {
+    it('should always show the Import Pilot banner', () => {
+      const output = run(['--dry-run', E2E_FIXTURE]);
+      expect(output).toContain('Import Pilot');
+    });
 
-     it('should always show export cache build step', () => {
-       const output = run(`--dry-run ${E2E_FIXTURE}`);
-       expect(output).toContain('Building export cache');
-       expect(output).toContain('Export cache built');
-     });
+    it('should always show export cache build step', () => {
+      const output = run(['--dry-run', E2E_FIXTURE]);
+      expect(output).toContain('Building export cache');
+      expect(output).toContain('Export cache built');
+    });
 
-     it('should always show file count', () => {
-       const output = run(`--dry-run ${E2E_FIXTURE}`);
-       expect(output).toMatch(/Found \d+ files to analyze/);
-     });
-   });
+    it('should always show file count', () => {
+      const output = run(['--dry-run', E2E_FIXTURE]);
+      expect(output).toMatch(/Found \d+ files to analyze/);
+    });
+  });
 
-   describe('e2e-alias-fixture: alias path resolution', () => {
-     it('should resolve missing imports with tsconfig.json paths configured', () => {
-       const output = run(`--verbose --dry-run ${E2E_ALIAS_FIXTURE}`);
-       expect(output).toContain('helperFn');
-       expect(output).toContain('helper');
-     });
+  describe('e2e-alias-fixture: alias path resolution', () => {
+    it('should resolve missing imports with tsconfig.json paths configured', () => {
+      const output = run(['--verbose', '--dry-run', E2E_ALIAS_FIXTURE]);
+      expect(output).toContain('helperFn');
+      expect(output).toContain('helper');
+    });
 
-     it('should use relative paths when --no-alias flag is passed', () => {
-       const output = run(`--verbose --dry-run --no-alias ${E2E_ALIAS_FIXTURE}`);
-       expect(output).toContain('helperFn');
-       expect(output).toContain("from '../utils/helper'");
-     });
+    it('should use relative paths when --no-alias flag is passed', () => {
+      const output = run(['--verbose', '--dry-run', '--no-alias', E2E_ALIAS_FIXTURE]);
+      expect(output).toContain('helperFn');
+      expect(output).toContain("from '../utils/helper'");
+    });
 
-     it('should detect 1 missing import in alias fixture', () => {
-       const output = run(`--dry-run ${E2E_ALIAS_FIXTURE}`);
-       expect(output).toContain('Total missing imports: 1');
-     });
+    it('should detect 1 missing import in alias fixture', () => {
+      const output = run(['--dry-run', E2E_ALIAS_FIXTURE]);
+      expect(output).toContain('Total missing imports: 1');
+    });
 
-     it('should resolve 1 missing import in alias fixture', () => {
-       const output = run(`--dry-run ${E2E_ALIAS_FIXTURE}`);
-       expect(output).toContain('Resolvable imports: 1');
-     });
-   });
+    it('should resolve 1 missing import in alias fixture', () => {
+      const output = run(['--dry-run', E2E_ALIAS_FIXTURE]);
+      expect(output).toContain('Resolvable imports: 1');
+    });
+  });
 
-   describe('e2e-mixed-fixture: multi-language scanning', () => {
-     it('should detect missing imports in both TypeScript and Python files', () => {
-       const output = run(`--verbose --dry-run --extensions .ts,.py ${E2E_MIXED_FIXTURE}`);
-       expect(output).toContain('formatName');
-       expect(output).toContain('format_date');
-     });
+  describe('e2e-mixed-fixture: multi-language scanning', () => {
+    it('should detect missing imports in both TypeScript and Python files', () => {
+      const output = run(['--verbose', '--dry-run', '--extensions', '.ts,.py', E2E_MIXED_FIXTURE]);
+      expect(output).toContain('formatName');
+      expect(output).toContain('format_date');
+    });
 
-     it('should show correct import paths for TypeScript files', () => {
-       const output = run(`--verbose --dry-run --extensions .ts,.py ${E2E_MIXED_FIXTURE}`);
-       expect(output).toContain("from './utils'");
-     });
+    it('should show correct import paths for TypeScript files', () => {
+      const output = run(['--verbose', '--dry-run', '--extensions', '.ts,.py', E2E_MIXED_FIXTURE]);
+      expect(output).toContain("from './utils'");
+    });
 
-     it('should show correct import paths for Python files', () => {
-       const output = run(`--verbose --dry-run --extensions .ts,.py ${E2E_MIXED_FIXTURE}`);
-       expect(output).toContain('from ..helpers import format_date');
-     });
+    it('should show correct import paths for Python files', () => {
+      const output = run(['--verbose', '--dry-run', '--extensions', '.ts,.py', E2E_MIXED_FIXTURE]);
+      expect(output).toContain('from ..helpers import format_date');
+    });
 
-     it('should detect 2 missing imports in mixed fixture', () => {
-       const output = run(`--dry-run --extensions .ts,.py ${E2E_MIXED_FIXTURE}`);
-       expect(output).toContain('Total missing imports: 2');
-     });
+    it('should detect 2 missing imports in mixed fixture', () => {
+      const output = run(['--dry-run', '--extensions', '.ts,.py', E2E_MIXED_FIXTURE]);
+      expect(output).toContain('Total missing imports: 2');
+    });
 
-     it('should resolve 2 missing imports in mixed fixture', () => {
-       const output = run(`--dry-run --extensions .ts,.py ${E2E_MIXED_FIXTURE}`);
-       expect(output).toContain('Resolvable imports: 2');
-     });
+    it('should resolve 2 missing imports in mixed fixture', () => {
+      const output = run(['--dry-run', '--extensions', '.ts,.py', E2E_MIXED_FIXTURE]);
+      expect(output).toContain('Resolvable imports: 2');
+    });
 
-     it('should scan both .ts and .py files when extensions specified', () => {
-       const output = run(`--dry-run --extensions .ts,.py ${E2E_MIXED_FIXTURE}`);
-       expect(output).toMatch(/Found \d+ files to analyze/);
-       const match = output.match(/Found (\d+) files to analyze/);
-       expect(match).not.toBeNull();
-       const fileCount = parseInt(match![1]!, 10);
-       expect(fileCount).toBeGreaterThanOrEqual(2);
-     });
-   });
+    it('should scan both .ts and .py files when extensions specified', () => {
+      const output = run(['--dry-run', '--extensions', '.ts,.py', E2E_MIXED_FIXTURE]);
+      expect(output).toMatch(/Found \d+ files to analyze/);
+      const match = output.match(/Found (\d+) files to analyze/);
+      expect(match).not.toBeNull();
+      const fileCount = parseInt(match![1]!, 10);
+      expect(fileCount).toBeGreaterThanOrEqual(2);
+    });
+  });
 });

@@ -17,20 +17,28 @@ export class ElixirPlugin implements LanguagePlugin {
       imports.push({ source: fullModule, imports: [aliasName], isDefault: true });
     }
 
-    const importRegex = /^\s*import\s+([\w.]+)(?:\s*,\s*(?:only|except):\s*\[([^\]]*)\])?$/gm;
-    while ((match = importRegex.exec(content)) !== null) {
+    const importOnlyRegex = /^\s*import\s+([\w.]+)\s*,\s*only:\s*\[([^\]]*)\]$/gm;
+    while ((match = importOnlyRegex.exec(content)) !== null) {
       const fullModule = match[1];
-      const onlyList = match[2];
-      if (onlyList) {
-        const names = onlyList
-          .split(',')
-          .map(s => s.trim().replace(/:\s*\d+/, '').trim())
-          .filter(s => s.length > 0);
-        imports.push({ source: fullModule, imports: names, isDefault: false });
-      } else {
-        const shortName = fullModule.split('.').pop()!;
-        imports.push({ source: fullModule, imports: [shortName], isDefault: true });
-      }
+      const names = match[2]
+        .split(',')
+        .map(s => s.trim().replace(/:\s*\d+/, '').trim())
+        .filter(s => s.length > 0);
+      imports.push({ source: fullModule, imports: names, isDefault: false });
+    }
+
+    const importExceptRegex = /^\s*import\s+([\w.]+)\s*,\s*except:\s*\[([^\]]*)\]$/gm;
+    while ((match = importExceptRegex.exec(content)) !== null) {
+      const fullModule = match[1];
+      const shortName = fullModule.split('.').pop()!;
+      imports.push({ source: fullModule, imports: [shortName], isDefault: true, isNamespace: true });
+    }
+
+    const importPlainRegex = /^\s*import\s+([\w.]+)\s*$/gm;
+    while ((match = importPlainRegex.exec(content)) !== null) {
+      const fullModule = match[1];
+      const shortName = fullModule.split('.').pop()!;
+      imports.push({ source: fullModule, imports: [shortName], isDefault: true });
     }
 
     const useRegex = /^\s*use\s+([\w.]+)(?:\s*,\s*(.+))?$/gm;
@@ -60,7 +68,8 @@ export class ElixirPlugin implements LanguagePlugin {
       if (
         trimmed.startsWith('#') ||
         trimmed === '' ||
-        /^\s*(alias|import|use|require|defmodule|defprotocol|defimpl)\s/.test(trimmed)
+        /^\s*(alias|import|use|require|defmodule|defprotocol|defimpl)\s/.test(trimmed) ||
+        /^\s*(def|defp|defmacro|defmacrop|defguard|defguardp)\s/.test(trimmed)
       ) {
         return;
       }
@@ -101,10 +110,10 @@ export class ElixirPlugin implements LanguagePlugin {
       }
     }
 
-    const defRegex = /^\s*def\s+(\w+[!?]?)\s*[(\n,]/gm;
+    const defRegex = /^\s*def\s+(\w+[!?]?)\s*[(,\n]|^\s*def\s+(\w+[!?]?)\s+do\b/gm;
     while ((match = defRegex.exec(content)) !== null) {
-      const name = match[1];
-      if (!name.startsWith('__')) {
+      const name = match[1] || match[2];
+      if (name && !name.startsWith('__')) {
         exports.push({ name, source: filePath, isDefault: false });
       }
     }
@@ -125,6 +134,9 @@ export class ElixirPlugin implements LanguagePlugin {
   generateImportStatement(identifier: string, source: string, _isDefault: boolean): string {
     const moduleName = this.filePathToModule(source);
     if (/^[A-Z]/.test(identifier)) {
+      if (moduleName.endsWith(`.${identifier}`)) {
+        return `alias ${moduleName}`;
+      }
       return `alias ${moduleName}.${identifier}`;
     }
     return `import ${moduleName}, only: [${identifier}: 1]`;

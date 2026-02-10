@@ -40,7 +40,7 @@ export class RustPlugin implements LanguagePlugin {
       }
 
       // PascalCase type usage: MyStruct, MyEnum, MyTrait (not after `struct`, `enum`, `trait`, `type`, `impl`, `fn`)
-      const typeRegex = /(?<!\w)(?<!(?:struct|enum|trait|type|impl|fn|mod|use|pub\s+struct|pub\s+enum|pub\s+trait|pub\s+type|pub\s+fn|pub\s+mod)\s)([A-Z][a-zA-Z0-9_]*)\b/g;
+      const typeRegex = /(?<!\w)([A-Z][a-zA-Z0-9_]*)\b/g;
       let m;
       while ((m = typeRegex.exec(line)) !== null) {
         const name = m[1];
@@ -75,7 +75,7 @@ export class RustPlugin implements LanguagePlugin {
       }
 
       // Function calls: snake_case_func(...)
-      const funcCallRegex = /(?<![.:]\s*)(?<![.\w])([a-z_][a-z0-9_]*)\s*\(/g;
+      const funcCallRegex = /(?<![.\w])([a-z_][a-z0-9_]*)\s*\(/g;
       while ((m = funcCallRegex.exec(line)) !== null) {
         const name = m[1];
         if (this.isBuiltInOrKeyword(name) || seen.has(name)) continue;
@@ -154,6 +154,22 @@ export class RustPlugin implements LanguagePlugin {
       exports.push({ name: match[1], source: filePath, isDefault: false });
     }
 
+    // pub use re-exports: pub use path::to::Item;
+    const pubUseRegex = /^[ \t]*pub\s+use\s+[\w:]+::(\w+)\s*;/gm;
+    while ((match = pubUseRegex.exec(stripped)) !== null) {
+      exports.push({ name: match[1], source: filePath, isDefault: false });
+    }
+
+    // pub use re-exports with braces: pub use path::{A, B};
+    const pubUseBracesRegex = /^[ \t]*pub\s+use\s+[\w:]+::\{([^}]+)\}\s*;/gm;
+    while ((match = pubUseBracesRegex.exec(stripped)) !== null) {
+      const names = match[1].split(',').map(s => s.trim()).filter(s => s.length > 0);
+      for (const name of names) {
+        const parts = name.split('::');
+        exports.push({ name: parts[parts.length - 1], source: filePath, isDefault: false });
+      }
+    }
+
     return exports;
   }
 
@@ -163,6 +179,9 @@ export class RustPlugin implements LanguagePlugin {
 
   generateImportStatement(identifier: string, source: string, _isDefault: boolean): string {
     const modulePath = this.filePathToModule(source);
+    if (!modulePath) {
+      return `use crate::${identifier};`;
+    }
     return `use crate::${modulePath}::${identifier};`;
   }
 
@@ -235,13 +254,13 @@ export class RustPlugin implements LanguagePlugin {
   }
 
   private stripCommentsAndStrings(content: string): string {
+    // Order matters: strings before comments (strings may contain //)
+    let result = content.replace(/r#*"[\s\S]*?"#*/g, '""');
+    result = result.replace(/"(?:[^"\\]|\\.)*"/g, '""');
     // Remove block comments
-    let result = content.replace(/\/\*[\s\S]*?\*\//g, '');
+    result = result.replace(/\/\*[\s\S]*?\*\//g, '');
     // Remove line comments
     result = result.replace(/\/\/.*$/gm, '');
-    // Remove string literals (simple approach)
-    result = result.replace(/"(?:[^"\\]|\\.)*"/g, '""');
-    result = result.replace(/r#*"[\s\S]*?"#*/g, '""');
     return result;
   }
 

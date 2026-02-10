@@ -54,10 +54,12 @@ export class AutoImportCli {
       extensions = options.extensions.split(',').map((ext) => (ext.trim().startsWith('.') ? ext.trim() : '.' + ext.trim()));
     } else {
       const detected = await detectProjectLanguages(projectRoot);
-      if (detected.length > 0) {
-        extensions = detected;
+      const supported = new Set(getAllExtensions(this.plugins));
+      const filtered = detected.filter(ext => supported.has(ext));
+      if (filtered.length > 0) {
+        extensions = filtered;
         if (options.verbose) {
-          console.log(chalk.gray(`Auto-detected extensions: ${detected.join(', ')}`));
+          console.log(chalk.gray(`Auto-detected extensions: ${filtered.join(', ')}`));
         }
       } else {
         extensions = getAllExtensions(this.plugins);
@@ -204,6 +206,18 @@ export class AutoImportCli {
     }
   }
 
+  private getLanguageForExt(ext: string): string {
+    const pythonExts = new Set(['.py']);
+    const elixirExts = new Set(['.ex', '.exs']);
+    const goExts = new Set(['.go']);
+    const rustExts = new Set(['.rs']);
+    if (pythonExts.has(ext)) return 'python';
+    if (elixirExts.has(ext)) return 'elixir';
+    if (goExts.has(ext)) return 'go';
+    if (rustExts.has(ext)) return 'rust';
+    return 'js';
+  }
+
   private async applyFixes(missingImports: MissingImport[], enableSort: boolean): Promise<void> {
     const fileMap = new Map<string, MissingImport[]>();
     for (const item of missingImports) {
@@ -230,7 +244,8 @@ export class AutoImportCli {
 
       if (newImports.length === 0) continue;
 
-      const sortedImports = enableSort ? sortImports(newImports, 'js') : newImports;
+      const lang = this.getLanguageForExt(ext);
+      const sortedImports = enableSort ? sortImports(newImports, lang) : newImports;
       const newContent = plugin.insertImports(content, sortedImports, filePath);
       await fs.writeFile(filePath, newContent, 'utf-8');
     }
@@ -252,8 +267,7 @@ export function createCli(): Command {
     .option('-c, --config <path>', 'Path to config file')
     .option('--no-alias', 'Disable tsconfig path alias resolution')
     .option('-r, --report <format>', 'Report format: md, json, txt, or none', 'none')
-    .option('-s, --sort', 'Sort and group imports (default: true)', true)
-    .option('--no-sort', 'Disable import sorting and grouping')
+    .option('-s, --no-sort', 'Disable import sorting and grouping')
     .option('--sort-order <order>', 'Import sort order: builtin,external,alias,relative', 'builtin,external,alias,relative')
     .action(async (directory: string, options: CliOptions) => {
       try {

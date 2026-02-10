@@ -221,8 +221,24 @@ function extractExistingImports(content: string, isPython: boolean): string[] {
   const imports: string[] = [];
 
   if (isPython) {
+    let inMultiLine = false;
+    let currentImport = '';
     for (const line of lines) {
       const trimmed = line.trim();
+      if (inMultiLine) {
+        currentImport += ' ' + trimmed;
+        if (trimmed.includes(')')) {
+          imports.push(currentImport.replace(/\s+/g, ' ').trim());
+          inMultiLine = false;
+          currentImport = '';
+        }
+        continue;
+      }
+      if ((trimmed.startsWith('from ') || trimmed.startsWith('import ')) && trimmed.includes('(') && !trimmed.includes(')')) {
+        inMultiLine = true;
+        currentImport = trimmed;
+        continue;
+      }
       if (trimmed.startsWith('import ') || trimmed.startsWith('from ')) {
         imports.push(trimmed);
       }

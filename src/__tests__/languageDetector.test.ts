@@ -130,9 +130,9 @@ describe('detectProjectLanguages', () => {
     expect(result).toEqual(['.js', '.jsx', '.py', '.ts', '.tsx']);
   });
 
-  it('should detect from real fixture: sample-project (has tsconfig + package.json)', async () => {
-    const fixtureRoot = path.resolve(__dirname, '../../');
-    const result = await detectProjectLanguages(fixtureRoot);
+  it('should detect TypeScript + JavaScript from tsconfig + package.json', async () => {
+    await touch(tmpDir, 'tsconfig.json', 'package.json');
+    const result = await detectProjectLanguages(tmpDir);
     expect(result).toContain('.ts');
     expect(result).toContain('.tsx');
     expect(result).toContain('.js');

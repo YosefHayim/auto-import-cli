@@ -387,7 +387,7 @@ pub trait Validate { fn validate(&self) -> bool; }`;
 
     it('should handle lib.rs paths', () => {
       const stmt = plugin.generateImportStatement('Config', '/project/src/lib.rs', false);
-      expect(stmt).toBe('use crate::::Config;');
+      expect(stmt).toBe('use crate::Config;');
     });
   });
 
