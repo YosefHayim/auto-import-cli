@@ -4,6 +4,7 @@ import { AstParser } from '@/parser/astParser.js';
 import { FrameworkParser } from '@/parser/frameworkParser.js';
 import type { ImportStatement, UsedIdentifier } from '@/parser/astParser.js';
 import type { ExportInfo } from '@/resolver/importResolver.js';
+import { JSTS_BUILTINS, JSTS_KEYWORDS } from '@/constants/jstsKeywords.js';
 
 const FRAMEWORK_EXTENSIONS = new Set(['.vue', '.svelte', '.astro']);
 
@@ -166,36 +167,5 @@ export class JsTsPlugin implements LanguagePlugin {
     }
 
     return lastImportLine >= 0 ? lastImportLine + 1 : firstCodeLine;
-  }
+   }
 }
-
-const JSTS_BUILTINS = new Set([
-  'Array',
-  'Object',
-  'String',
-  'Number',
-  'Boolean',
-  'Symbol',
-  'Date',
-  'Error',
-  'RegExp',
-  'Map',
-  'Set',
-  'Promise',
-  'JSON',
-  'Math',
-  'Function',
-  'Infinity',
-  'NaN',
-  'undefined',
-  'null',
-]);
-
-const JSTS_KEYWORDS = new Set([
-  // Vue compiler macros — these are compiler-injected globals, not importable
-  'defineProps',
-  'defineEmits',
-  'defineExpose',
-  'defineSlots',
-  'withDefaults',
-]);
