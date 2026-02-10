@@ -1,0 +1,117 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build project
+        run: npm run build
+      
+      - name: Get merged PR info
+        id: pr_info
+        run: |
+          # Get the most recent merged PR that matches this commit
+          PR_DATA=$(gh pr list --state merged --limit 1 --json number,labels,title --jq '.[0]')
+          
+          if [ -z "$PR_DATA" ] || [ "$PR_DATA" = "null" ]; then
+            echo "No merged PR found, skipping release"
+            echo "skip_release=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          PR_NUMBER=$(echo "$PR_DATA" | jq -r '.number')
+          LABELS=$(echo "$PR_DATA" | jq -r '.labels[].name' | tr '\n' ' ')
+          
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "labels=$LABELS" >> $GITHUB_OUTPUT
+          echo "Found PR #$PR_NUMBER with labels: $LABELS"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Check for no-release label
+        id: check_no_release
+        if: steps.pr_info.outputs.skip_release != 'true'
+        run: |
+          LABELS="${{ steps.pr_info.outputs.labels }}"
+          if echo "$LABELS" | grep -q "no-release"; then
+            echo "no_release=true" >> $GITHUB_OUTPUT
+            echo "PR has no-release label, skipping release"
+          else
+            echo "no_release=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Determine version bump
+        id: version_bump
+        if: steps.check_no_release.outputs.no_release != 'true' && steps.pr_info.outputs.skip_release != 'true'
+        run: |
+          LABELS="${{ steps.pr_info.outputs.labels }}"
+          
+          if echo "$LABELS" | grep -q "major"; then
+            echo "bump_type=major" >> $GITHUB_OUTPUT
+            echo "Version bump: major"
+          elif echo "$LABELS" | grep -q "minor"; then
+            echo "bump_type=minor" >> $GITHUB_OUTPUT
+            echo "Version bump: minor"
+          else
+            echo "bump_type=patch" >> $GITHUB_OUTPUT
+            echo "Version bump: patch (default)"
+          fi
+      
+      - name: Bump version
+        id: new_version
+        if: steps.version_bump.outputs.bump_type != ''
+        run: |
+          npm version ${{ steps.version_bump.outputs.bump_type }} --no-git-tag-version
+          NEW_VERSION=$(jq -r '.version' package.json)
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Bumped to version: $NEW_VERSION"
+      
+      - name: Configure git
+        if: steps.new_version.outputs.new_version != ''
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+      
+      - name: Commit version bump
+        if: steps.new_version.outputs.new_version != ''
+        run: |
+          git add package.json package-lock.json
+          git commit -m "chore: bump version to ${{ steps.new_version.outputs.new_version }}"
+      
+      - name: Create and push git tag
+        if: steps.new_version.outputs.new_version != ''
+        run: |
+          git tag "v${{ steps.new_version.outputs.new_version }}"
+          git push origin "v${{ steps.new_version.outputs.new_version }}"
+      
+      - name: Create GitHub Release
+        if: steps.new_version.outputs.new_version != ''
+        run: |
+          gh release create "v${{ steps.new_version.outputs.new_version }}" \
+            --title "v${{ steps.new_version.outputs.new_version }}" \
+            --generate-notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

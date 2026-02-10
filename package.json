@@ -1,17 +1,17 @@
 {
-  "name": "auto-import-cli",
+  "name": "import-pilot",
   "version": "1.0.0",
-  "description": "Open source CLI tool that automatically scans each file in your project and imports missing imports of Components, functions, etc.",
+  "description": "CLI tool that scans your project and auto-fixes missing imports across JS/TS, Vue, Svelte, Astro, and Python.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "auto-import": "./bin/auto-import.js"
+    "import-pilot": "./bin/import-pilot.js"
   },
   "scripts": {
     "build": "tsc && tsc-alias",
     "dev": "tsc --watch",
-    "start": "node bin/auto-import.js",
+    "start": "node bin/import-pilot.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -20,10 +20,11 @@
   "keywords": [
     "import",
     "auto-import",
+    "import-pilot",
     "cli",
     "typescript",
     "javascript",
-    "ast",
+    "python",
     "code-quality"
   ],
   "author": "Yosef Hayim Sabag",
@@ -33,6 +34,7 @@
     "url": "https://github.com/YosefHayim/auto-import-cli"
   },
   "dependencies": {
+    "@clack/prompts": "^1.0.0",
     "@types/node": "^25.2.2",
     "chalk": "^5.6.2",
     "commander": "^14.0.3",

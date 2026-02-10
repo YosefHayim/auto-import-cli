@@ -115,4 +115,34 @@ export function MyComponent() {
       expect(result.existingImports[0].imports).toContain('React');
     });
   });
+
+  describe('FIX 5b: isKeyword should only suppress Vue compiler macros', () => {
+    it('should treat framework symbols as importable (not keywords)', () => {
+      const result = parser.parse(`
+const svc = Injectable({ providedIn: 'root' });
+const router = Router();
+`);
+      expect(result.missingImports).not.toContain('defineProps');
+      expect(result.missingImports).not.toContain('defineEmits');
+    });
+
+    it('should not suppress Angular/React/Next.js symbols', () => {
+      const isKeyword = (parser as any).isKeyword.bind(parser);
+      expect(isKeyword('Injectable')).toBe(false);
+      expect(isKeyword('Observable')).toBe(false);
+      expect(isKeyword('Router')).toBe(false);
+      expect(isKeyword('Component')).toBe(false);
+      expect(isKeyword('GetServerSideProps')).toBe(false);
+      expect(isKeyword('SvelteComponent')).toBe(false);
+    });
+
+    it('should still suppress Vue compiler macros', () => {
+      const isKeyword = (parser as any).isKeyword.bind(parser);
+      expect(isKeyword('defineProps')).toBe(true);
+      expect(isKeyword('defineEmits')).toBe(true);
+      expect(isKeyword('defineExpose')).toBe(true);
+      expect(isKeyword('defineSlots')).toBe(true);
+      expect(isKeyword('withDefaults')).toBe(true);
+    });
+  });
 });

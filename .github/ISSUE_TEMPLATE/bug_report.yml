@@ -60,7 +60,7 @@ body:
         - OS: [e.g., macOS 14.0, Windows 11, Ubuntu 22.04]
         - Node.js version: [e.g., 20.10.0]
         - npm version: [e.g., 10.2.3]
-        - auto-import-cli version: [e.g., 1.0.0]
+        - import-pilot version: [e.g., 1.0.0]
       render: markdown
     validations:
       required: true

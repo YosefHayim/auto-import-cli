@@ -158,8 +158,7 @@ export class AstParser {
 
   private isKeyword(name: string): boolean {
     const keywords = [
-      'React', 'Component', 'Fragment', 'Interface', 'Type', 
-      'Props', 'State', 'Ref',
+      'defineProps', 'defineEmits', 'defineExpose', 'defineSlots', 'withDefaults',
     ];
     return keywords.includes(name);
   }
