@@ -9,7 +9,7 @@ Multi-language CLI tool that scans projects for missing imports and auto-inserts
 ## STRUCTURE
 
 ```
-auto-import-cli/
+import-pilot/
 ├── bin/import-pilot.js          # CLI entry (shebang → dist/cli/autoImportCli.js)
 ├── src/
 │   ├── index.ts                 # Barrel exports (public API for npm consumers)
@@ -35,34 +35,34 @@ auto-import-cli/
 
 ## WHERE TO LOOK
 
-| Task | Location | Notes |
-|------|----------|-------|
-| Add new CLI flag | `src/cli/autoImportCli.ts` | Commander.js `.option()` chain in `createCli()` |
-| Add new language | `src/plugins/` | Implement `LanguagePlugin` interface, register in `index.ts` |
-| Add framework support | `src/plugins/jsTsPlugin.ts` | Extend `extractScript()` + FrameworkParser |
-| Fix false positive (JS/TS) | `src/plugins/jsTsPlugin.ts` | Check `JSTS_BUILTINS`, `JSTS_KEYWORDS` sets |
-| Fix false positive (Python) | `src/plugins/pythonPlugin.ts` | Check `PYTHON_BUILTINS`, `PYTHON_KEYWORDS` |
-| Fix import resolution | `src/resolver/importResolver.ts` | Check `parseExportsLegacy()` or plugin `parseExports()` |
-| Fix alias resolution | `src/resolver/importResolver.ts` | Check `loadPathAliases()`, `getAliasImportPath()` |
-| Add test | `src/__tests__/*.test.ts` | One test file per module |
-| Add test fixture | `tests/` | Subdirs by category |
-| CI/CD | `.github/workflows/ci.yml` | Node 18/20/22 matrix |
+| Task                        | Location                         | Notes                                                        |
+| --------------------------- | -------------------------------- | ------------------------------------------------------------ |
+| Add new CLI flag            | `src/cli/autoImportCli.ts`       | Commander.js `.option()` chain in `createCli()`              |
+| Add new language            | `src/plugins/`                   | Implement `LanguagePlugin` interface, register in `index.ts` |
+| Add framework support       | `src/plugins/jsTsPlugin.ts`      | Extend `extractScript()` + FrameworkParser                   |
+| Fix false positive (JS/TS)  | `src/plugins/jsTsPlugin.ts`      | Check `JSTS_BUILTINS`, `JSTS_KEYWORDS` sets                  |
+| Fix false positive (Python) | `src/plugins/pythonPlugin.ts`    | Check `PYTHON_BUILTINS`, `PYTHON_KEYWORDS`                   |
+| Fix import resolution       | `src/resolver/importResolver.ts` | Check `parseExportsLegacy()` or plugin `parseExports()`      |
+| Fix alias resolution        | `src/resolver/importResolver.ts` | Check `loadPathAliases()`, `getAliasImportPath()`            |
+| Add test                    | `src/__tests__/*.test.ts`        | One test file per module                                     |
+| Add test fixture            | `tests/`                         | Subdirs by category                                          |
+| CI/CD                       | `.github/workflows/ci.yml`       | Node 18/20/22 matrix                                         |
 
 ## CODE MAP
 
-| Symbol | Type | Location | Role |
-|--------|------|----------|------|
-| `LanguagePlugin` | interface | plugins/languagePlugin.ts | Contract all language plugins implement |
-| `JsTsPlugin` | class | plugins/jsTsPlugin.ts | JS/TS/Vue/Svelte/Astro language support |
-| `PythonPlugin` | class | plugins/pythonPlugin.ts | Python language support |
-| `getPluginForExtension()` | function | plugins/index.ts | Registry — maps file extension to plugin |
-| `AutoImportCli` | class | cli/autoImportCli.ts | **Orchestrator** — runs full pipeline via plugins |
-| `createCli()` | function | cli/autoImportCli.ts | Factory — builds Commander program |
-| `FileScanner` | class | scanner/fileScanner.ts | Glob discovery + file reading |
-| `AstParser` | class | parser/astParser.ts | Legacy regex parser (used internally by JsTsPlugin) |
-| `FrameworkParser` | class | parser/frameworkParser.ts | Vue/Svelte/Astro script extraction |
-| `ImportResolver` | class | resolver/importResolver.ts | Export cache + resolution + alias support |
-| `PathAlias` | interface | resolver/importResolver.ts | Alias mapping from tsconfig.json paths |
+| Symbol                    | Type      | Location                   | Role                                                |
+| ------------------------- | --------- | -------------------------- | --------------------------------------------------- |
+| `LanguagePlugin`          | interface | plugins/languagePlugin.ts  | Contract all language plugins implement             |
+| `JsTsPlugin`              | class     | plugins/jsTsPlugin.ts      | JS/TS/Vue/Svelte/Astro language support             |
+| `PythonPlugin`            | class     | plugins/pythonPlugin.ts    | Python language support                             |
+| `getPluginForExtension()` | function  | plugins/index.ts           | Registry — maps file extension to plugin            |
+| `AutoImportCli`           | class     | cli/autoImportCli.ts       | **Orchestrator** — runs full pipeline via plugins   |
+| `createCli()`             | function  | cli/autoImportCli.ts       | Factory — builds Commander program                  |
+| `FileScanner`             | class     | scanner/fileScanner.ts     | Glob discovery + file reading                       |
+| `AstParser`               | class     | parser/astParser.ts        | Legacy regex parser (used internally by JsTsPlugin) |
+| `FrameworkParser`         | class     | parser/frameworkParser.ts  | Vue/Svelte/Astro script extraction                  |
+| `ImportResolver`          | class     | resolver/importResolver.ts | Export cache + resolution + alias support           |
+| `PathAlias`               | interface | resolver/importResolver.ts | Alias mapping from tsconfig.json paths              |
 
 ### Execution Flow
 

@@ -1,26 +1,30 @@
-# Contributing to Auto Import CLI
+# Contributing to import-pilot
 
-Thank you for your interest in contributing to Auto Import CLI! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to import-pilot! This document provides guidelines and instructions for contributing.
 
 ## Development Setup
 
 1. **Clone the repository**
+
 ```bash
-git clone https://github.com/YosefHayim/auto-import-cli.git
-cd auto-import-cli
+git clone https://github.com/YosefHayim/import-pilot.git
+cd import-pilot
 ```
 
 2. **Install dependencies**
+
 ```bash
 npm install
 ```
 
 3. **Build the project**
+
 ```bash
 npm run build
 ```
 
 4. **Run tests**
+
 ```bash
 npm test
 ```
@@ -28,7 +32,7 @@ npm test
 ## Project Structure
 
 ```
-auto-import-cli/
+import-pilot/
 ├── src/
 │   ├── scanner/         # File scanning functionality
 │   ├── parser/          # AST parsing and import detection
@@ -44,16 +48,19 @@ auto-import-cli/
 ## Development Workflow
 
 1. **Watch mode for development**
+
 ```bash
 npm run dev
 ```
 
 2. **Run tests in watch mode**
+
 ```bash
 npm run test:watch
 ```
 
 3. **Test your changes**
+
 ```bash
 node bin/auto-import.js tests/sample-project --dry-run --verbose
 ```
@@ -77,6 +84,7 @@ node bin/auto-import.js tests/sample-project --dry-run --verbose
 ### Commit Messages
 
 Follow conventional commit format:
+
 ```
 <type>(<scope>): <description>
 
@@ -90,6 +98,7 @@ test(scanner): add tests for ignore patterns
 ## Adding New Features
 
 1. **Create a feature branch**
+
 ```bash
 git checkout -b feat/your-feature-name
 ```
@@ -100,6 +109,7 @@ git checkout -b feat/your-feature-name
    - Update documentation
 
 3. **Test thoroughly**
+
 ```bash
 npm test
 npm run build

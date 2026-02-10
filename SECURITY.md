@@ -11,7 +11,7 @@ We release patches for security vulnerabilities in the following versions:
 
 ## Reporting a Vulnerability
 
-We take the security of auto-import-cli seriously. If you believe you have found a security vulnerability, please report it to us as described below.
+We take the security of import-pilot seriously. If you believe you have found a security vulnerability, please report it to us as described below.
 
 ### How to Report
 
@@ -41,7 +41,7 @@ Please include the following information in your report:
 
 ## Security Best Practices for Users
 
-When using auto-import-cli:
+When using import-pilot:
 
 1. **Keep the tool updated**: Always use the latest version
 2. **Review changes**: Use `--dry-run` flag before applying changes to your codebase
@@ -75,4 +75,4 @@ We follow a coordinated disclosure model:
 4. New version is released with the fix
 5. Security advisory is published
 
-Thank you for helping keep auto-import-cli and its users safe!
+Thank you for helping keep import-pilot and its users safe!

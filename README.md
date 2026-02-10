@@ -4,7 +4,7 @@
 
 **Stop adding imports by hand. Let the CLI do it.**
 
-[![CI](https://github.com/YosefHayim/auto-import-cli/workflows/CI%20-%20Test%20&%20Build/badge.svg)](https://github.com/YosefHayim/auto-import-cli/actions)
+[![CI](https://github.com/YosefHayim/import-pilot/workflows/CI%20-%20Test%20&%20Build/badge.svg)](https://github.com/YosefHayim/import-pilot/actions)
 [![npm](https://img.shields.io/npm/v/import-pilot.svg?style=flat-square)](https://www.npmjs.com/package/import-pilot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
@@ -88,18 +88,18 @@ Path aliases from `tsconfig.json` (e.g. `@/components/Card`) are used automatica
 
 ## Supported Languages & Frameworks
 
-| Language | Extensions | Frameworks |
-|----------|-----------|------------|
-| TypeScript / JavaScript | `.ts` `.tsx` `.js` `.jsx` | React, Angular, Next.js, Nuxt |
-| Vue | `.vue` | Vue 2 & 3 (SFC `<script>` / `<script setup>`) |
-| Svelte | `.svelte` | SvelteKit |
-| Astro | `.astro` | Astro frontmatter |
-| Python | `.py` | `from`/`import` statements, `def`/`class` exports |
-| Elixir | `.ex` `.exs` | Mix projects |
-| Go | `.go` | Go modules |
-| Rust | `.rs` | Cargo projects |
+| Language                | Extensions                | Frameworks                                        |
+| ----------------------- | ------------------------- | ------------------------------------------------- |
+| TypeScript / JavaScript | `.ts` `.tsx` `.js` `.jsx` | React, Angular, Next.js, Nuxt                     |
+| Vue                     | `.vue`                    | Vue 2 & 3 (SFC `<script>` / `<script setup>`)     |
+| Svelte                  | `.svelte`                 | SvelteKit                                         |
+| Astro                   | `.astro`                  | Astro frontmatter                                 |
+| Python                  | `.py`                     | `from`/`import` statements, `def`/`class` exports |
+| Elixir                  | `.ex` `.exs`              | Mix projects                                      |
+| Go                      | `.go`                     | Go modules                                        |
+| Rust                    | `.rs`                     | Cargo projects                                    |
 
-See [open issues](https://github.com/YosefHayim/auto-import-cli/issues) for additional language support.
+See [open issues](https://github.com/YosefHayim/import-pilot/issues) for additional language support.
 
 ---
 
@@ -107,12 +107,12 @@ See [open issues](https://github.com/YosefHayim/auto-import-cli/issues) for addi
 
 After each run, import-pilot can generate a report file at your project root. Configure via `.import-pilot.json` or the setup wizard.
 
-| Format | Flag | Output file |
-|--------|------|-------------|
-| Markdown | `--report md` | `import-pilot-report.md` |
-| JSON | `--report json` | `import-pilot-report.json` |
-| Text | `--report txt` | `import-pilot-report.txt` |
-| Off | `--report none` | *(no file)* |
+| Format   | Flag            | Output file                |
+| -------- | --------------- | -------------------------- |
+| Markdown | `--report md`   | `import-pilot-report.md`   |
+| JSON     | `--report json` | `import-pilot-report.json` |
+| Text     | `--report txt`  | `import-pilot-report.txt`  |
+| Off      | `--report none` | _(no file)_                |
 
 Reports include: time taken, files scanned, files changed, each import added (before → after), and any unresolved identifiers.
 
@@ -124,20 +124,20 @@ Reports include: time taken, files scanned, files changed, each import added (be
 import-pilot [directory] [options]
 ```
 
-| Option | Short | Description | Default |
-|--------|-------|-------------|---------|
-| `--dry-run` | `-d` | Preview changes without writing files | `false` |
-| `--verbose` | `-v` | Detailed output | `false` |
-| `--extensions` | `-e` | File extensions to scan (comma-separated) | `.ts,.tsx,.js,.jsx,.vue,.svelte,.astro,.py` |
-| `--ignore` | `-i` | Glob patterns to ignore (comma-separated) | — |
-| `--config` | `-c` | Path to config file | `.import-pilot.json` |
-| `--no-alias` | — | Disable tsconfig path alias resolution | `false` |
-| `--report` | `-r` | Report format: `md`, `json`, `txt`, or `none` | `none` |
+| Option         | Short | Description                                   | Default                                     |
+| -------------- | ----- | --------------------------------------------- | ------------------------------------------- |
+| `--dry-run`    | `-d`  | Preview changes without writing files         | `false`                                     |
+| `--verbose`    | `-v`  | Detailed output                               | `false`                                     |
+| `--extensions` | `-e`  | File extensions to scan (comma-separated)     | `.ts,.tsx,.js,.jsx,.vue,.svelte,.astro,.py` |
+| `--ignore`     | `-i`  | Glob patterns to ignore (comma-separated)     | —                                           |
+| `--config`     | `-c`  | Path to config file                           | `.import-pilot.json`                        |
+| `--no-alias`   | —     | Disable tsconfig path alias resolution        | `false`                                     |
+| `--report`     | `-r`  | Report format: `md`, `json`, `txt`, or `none` | `none`                                      |
 
 ### Subcommands
 
-| Command | Description |
-|---------|-------------|
+| Command             | Description              |
+| ------------------- | ------------------------ |
 | `import-pilot init` | Interactive setup wizard |
 
 ---
@@ -195,14 +195,14 @@ Or let `import-pilot init` set this up for you.
 ## Contributing
 
 ```bash
-git clone https://github.com/YosefHayim/auto-import-cli.git
-cd auto-import-cli
+git clone https://github.com/YosefHayim/import-pilot.git
+cd import-pilot
 npm install
 npm run build
 npm test
 ```
 
-See [open issues](https://github.com/YosefHayim/auto-import-cli/issues) for planned features and language support.
+See [open issues](https://github.com/YosefHayim/import-pilot/issues) for planned features and language support.
 
 ---
 
@@ -216,6 +216,6 @@ MIT
 
 Built by [**Yosef Hayim Sabag**](https://github.com/YosefHayim)
 
-[Bug Reports](https://github.com/YosefHayim/auto-import-cli/issues) · [Buy Me a Coffee](https://buymeacoffee.com/yosefhayim)
+[Bug Reports](https://github.com/YosefHayim/import-pilot/issues) · [Buy Me a Coffee](https://buymeacoffee.com/yosefhayim)
 
 </div>

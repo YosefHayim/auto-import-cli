@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Comprehensive CI/CD pipeline with GitHub Actions
 - Professional issue templates (Bug Report, Feature Request, Documentation, Question)
 - Pull request template
@@ -18,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2026-02-09
 
 ### Added
+
 - Initial release
 - Automatic import detection for TypeScript/JavaScript files
 - Support for JSX components and plain functions
@@ -28,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Beautiful colored terminal output
 
 ### Features
+
 - 🔍 Automatic scanning of project files
 - 🎯 Smart detection using AST parsing
 - 📦 Function and component detection
@@ -37,5 +40,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 🧪 Dry run mode
 - 🌐 Multi-framework support
 
-[Unreleased]: https://github.com/YosefHayim/auto-import-cli/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/YosefHayim/auto-import-cli/releases/tag/v1.0.0
+[Unreleased]: https://github.com/YosefHayim/import-pilot/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/YosefHayim/import-pilot/releases/tag/v1.0.0
