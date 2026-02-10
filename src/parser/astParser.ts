@@ -158,25 +158,7 @@ export class AstParser {
 
   private isKeyword(name: string): boolean {
     const keywords = [
-      // React
-      'React', 'Component', 'Fragment', 'Interface', 'Type', 'Props', 'State', 'Ref',
-      // Angular
-      'Injectable', 'NgModule', 'Input', 'Output', 'EventEmitter',
-      'OnInit', 'OnDestroy', 'OnChanges', 'AfterViewInit',
-      'ViewChild', 'ViewChildren', 'ContentChild', 'ContentChildren',
-      'Pipe', 'Directive', 'HostListener', 'HostBinding',
-      'Inject', 'Optional', 'Self', 'SkipSelf',
-      'ChangeDetectorRef', 'ElementRef', 'TemplateRef', 'Renderer2',
-      'FormBuilder', 'FormGroup', 'FormControl', 'Validators',
-      'ActivatedRoute', 'Router', 'HttpClient',
-      'Observable', 'Subject', 'BehaviorSubject', 'Subscription',
-      // Vue
       'defineProps', 'defineEmits', 'defineExpose', 'defineSlots', 'withDefaults',
-      // Svelte
-      'SvelteComponent', 'SvelteComponentDev',
-      // Next.js / Nuxt
-      'GetServerSideProps', 'GetStaticProps', 'GetStaticPaths',
-      'NextPage', 'NextApiRequest', 'NextApiResponse',
     ];
     return keywords.includes(name);
   }

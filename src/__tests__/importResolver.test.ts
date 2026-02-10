@@ -203,4 +203,91 @@ export { foo, baz };
       }
     });
   });
+
+  describe('FIX 10: JSONC tsconfig support', () => {
+    it('should parse tsconfig.json with line comments', async () => {
+      const tmpDir = path.join(process.cwd(), 'tests', '_tmp_jsonc_test');
+      await fs.mkdir(tmpDir, { recursive: true });
+      await fs.writeFile(path.join(tmpDir, 'tsconfig.json'), `{
+  // This is a comment
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"] // inline comment
+    }
+  }
+}`);
+      const srcDir = path.join(tmpDir, 'src');
+      await fs.mkdir(srcDir, { recursive: true });
+      await fs.writeFile(path.join(srcDir, 'util.ts'), 'export function helper() {}');
+
+      try {
+        const resolver = new ImportResolver({ projectRoot: tmpDir });
+        await resolver.buildExportCache();
+        expect(resolver.getPathAliases().length).toBeGreaterThan(0);
+      } finally {
+        await fs.rm(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should parse tsconfig.json with block comments and trailing commas', async () => {
+      const tmpDir = path.join(process.cwd(), 'tests', '_tmp_jsonc_block_test');
+      await fs.mkdir(tmpDir, { recursive: true });
+      await fs.writeFile(path.join(tmpDir, 'tsconfig.json'), `{
+  /* block comment */
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+    },
+  },
+}`);
+      const srcDir = path.join(tmpDir, 'src');
+      await fs.mkdir(srcDir, { recursive: true });
+      await fs.writeFile(path.join(srcDir, 'util.ts'), 'export function helper() {}');
+
+      try {
+        const resolver = new ImportResolver({ projectRoot: tmpDir });
+        await resolver.buildExportCache();
+        expect(resolver.getPathAliases().length).toBeGreaterThan(0);
+      } finally {
+        await fs.rm(tmpDir, { recursive: true, force: true });
+      }
+    });
+  });
+
+  describe('FIX 11: Windows path separators in alias paths', () => {
+    it('should normalize backslashes in alias import paths', () => {
+      const resolver = new ImportResolver({ projectRoot: '/project' });
+      (resolver as any).pathAliases = [
+        { pattern: '@/*', prefix: '@/', targetPrefix: '/project/src/' },
+      ] satisfies PathAlias[];
+
+      const getAliasImportPath = (resolver as any).getAliasImportPath.bind(resolver);
+      const result = getAliasImportPath('/project/src/utils/helpers.ts');
+      expect(result).not.toContain('\\');
+      expect(result).toBe('@/utils/helpers');
+    });
+
+    it('should normalize backslashes in relative import paths', () => {
+      const resolver = new ImportResolver({ projectRoot: '/project' });
+      const getRelativeImportPath = (resolver as any).getRelativeImportPath.bind(resolver);
+      const result = getRelativeImportPath(
+        '/project/components/Button.tsx',
+        '/project/components/Card.tsx'
+      );
+      expect(result).not.toContain('\\');
+    });
+  });
+
+  describe('FIX 10: legacy parseExportsLegacy also handles as-split correctly', () => {
+    it('should not split hasError via as-regex in legacy parser', () => {
+      const resolver = new ImportResolver({ projectRoot: '/test' });
+      const parseExports = (resolver as any).parseExportsLegacy.bind(resolver);
+      const content = `export { hasError, baseClass };`;
+      const exports = parseExports(content, '/test/file.ts');
+      expect(exports.some((e: any) => e.name === 'hasError')).toBe(true);
+      expect(exports.some((e: any) => e.name === 'baseClass')).toBe(true);
+    });
+  });
 });

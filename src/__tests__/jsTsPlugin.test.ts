@@ -246,42 +246,36 @@ import { foo } from 'bar';`;
     });
   });
 
-  describe('findUsedIdentifiers - Angular patterns', () => {
-    it('should not report Component as missing when it is a keyword', () => {
-      const content = `
-const metadata = Component({ selector: 'app-root' });
-`;
-      const ids = plugin.findUsedIdentifiers(content, 'test.ts');
-      expect(ids.some(id => id.name === 'Component')).toBe(false);
+  describe('framework symbols are importable (not suppressed as keywords)', () => {
+    it('should NOT treat Angular symbols as keywords — they need imports', () => {
+      expect(plugin.isBuiltInOrKeyword('Injectable')).toBe(false);
+      expect(plugin.isBuiltInOrKeyword('NgModule')).toBe(false);
+      expect(plugin.isBuiltInOrKeyword('OnInit')).toBe(false);
+      expect(plugin.isBuiltInOrKeyword('OnDestroy')).toBe(false);
+      expect(plugin.isBuiltInOrKeyword('EventEmitter')).toBe(false);
+      expect(plugin.isBuiltInOrKeyword('Input')).toBe(false);
+      expect(plugin.isBuiltInOrKeyword('Output')).toBe(false);
+      expect(plugin.isBuiltInOrKeyword('ViewChild')).toBe(false);
+      expect(plugin.isBuiltInOrKeyword('HttpClient')).toBe(false);
+      expect(plugin.isBuiltInOrKeyword('Router')).toBe(false);
+      expect(plugin.isBuiltInOrKeyword('Observable')).toBe(false);
     });
 
-    it('should recognize Angular identifiers as keywords', () => {
-      expect(plugin.isBuiltInOrKeyword('Injectable')).toBe(true);
-      expect(plugin.isBuiltInOrKeyword('NgModule')).toBe(true);
-      expect(plugin.isBuiltInOrKeyword('OnInit')).toBe(true);
-      expect(plugin.isBuiltInOrKeyword('OnDestroy')).toBe(true);
-      expect(plugin.isBuiltInOrKeyword('EventEmitter')).toBe(true);
+    it('should NOT treat React/Next.js symbols as keywords — they need imports', () => {
+      expect(plugin.isBuiltInOrKeyword('Component')).toBe(false);
+      expect(plugin.isBuiltInOrKeyword('GetServerSideProps')).toBe(false);
+      expect(plugin.isBuiltInOrKeyword('GetStaticProps')).toBe(false);
+      expect(plugin.isBuiltInOrKeyword('NextPage')).toBe(false);
     });
 
-    it('should recognize Angular decorator identifiers as keywords', () => {
-      expect(plugin.isBuiltInOrKeyword('Input')).toBe(true);
-      expect(plugin.isBuiltInOrKeyword('Output')).toBe(true);
-      expect(plugin.isBuiltInOrKeyword('ViewChild')).toBe(true);
-      expect(plugin.isBuiltInOrKeyword('Pipe')).toBe(true);
-      expect(plugin.isBuiltInOrKeyword('Directive')).toBe(true);
-    });
-
-    it('should recognize Angular service identifiers as keywords', () => {
-      expect(plugin.isBuiltInOrKeyword('HttpClient')).toBe(true);
-      expect(plugin.isBuiltInOrKeyword('Router')).toBe(true);
-      expect(plugin.isBuiltInOrKeyword('ActivatedRoute')).toBe(true);
-      expect(plugin.isBuiltInOrKeyword('FormBuilder')).toBe(true);
-      expect(plugin.isBuiltInOrKeyword('Observable')).toBe(true);
+    it('should NOT treat Svelte symbols as keywords — they need imports', () => {
+      expect(plugin.isBuiltInOrKeyword('SvelteComponent')).toBe(false);
+      expect(plugin.isBuiltInOrKeyword('SvelteComponentDev')).toBe(false);
     });
   });
 
-  describe('findUsedIdentifiers - Vue patterns', () => {
-    it('should recognize Vue Composition API keywords', () => {
+  describe('Vue compiler macros ARE keywords (compiler-injected globals)', () => {
+    it('should recognize Vue compiler macros as keywords', () => {
       expect(plugin.isBuiltInOrKeyword('defineProps')).toBe(true);
       expect(plugin.isBuiltInOrKeyword('defineEmits')).toBe(true);
       expect(plugin.isBuiltInOrKeyword('defineExpose')).toBe(true);
@@ -290,14 +284,89 @@ const metadata = Component({ selector: 'app-root' });
     });
   });
 
-  describe('findUsedIdentifiers - Next.js patterns', () => {
-    it('should recognize Next.js type keywords', () => {
-      expect(plugin.isBuiltInOrKeyword('GetServerSideProps')).toBe(true);
-      expect(plugin.isBuiltInOrKeyword('GetStaticProps')).toBe(true);
-      expect(plugin.isBuiltInOrKeyword('GetStaticPaths')).toBe(true);
-      expect(plugin.isBuiltInOrKeyword('NextPage')).toBe(true);
-      expect(plugin.isBuiltInOrKeyword('NextApiRequest')).toBe(true);
-      expect(plugin.isBuiltInOrKeyword('NextApiResponse')).toBe(true);
+  describe('FIX 1: as-split should not split identifiers containing "as" substring', () => {
+    it('should not split hasError into Error via as-regex', () => {
+      const content = `export { hasError };`;
+      const exports = plugin.parseExports(content, 'test.ts');
+      expect(exports.some(e => e.name === 'hasError')).toBe(true);
+      expect(exports.some(e => e.name === 'Error')).toBe(false);
+    });
+
+    it('should correctly handle actual as-alias with whitespace', () => {
+      const content = `export { foo as bar };`;
+      const exports = plugin.parseExports(content, 'test.ts');
+      expect(exports.some(e => e.name === 'bar')).toBe(true);
+      expect(exports.some(e => e.name === 'foo')).toBe(false);
+    });
+
+    it('should handle className without splitting on "as"', () => {
+      const content = `export { baseClass };`;
+      const exports = plugin.parseExports(content, 'test.ts');
+      expect(exports.some(e => e.name === 'baseClass')).toBe(true);
+    });
+  });
+
+  describe('FIX 2: export { type Foo } should strip type modifier', () => {
+    it('should strip type modifier from named exports', () => {
+      const content = `export { type Foo, type Bar };`;
+      const exports = plugin.parseExports(content, 'test.ts');
+      expect(exports.some(e => e.name === 'Foo')).toBe(true);
+      expect(exports.some(e => e.name === 'Bar')).toBe(true);
+    });
+
+    it('should strip type modifier from aliased exports', () => {
+      const content = `export { type Foo as MyFoo };`;
+      const exports = plugin.parseExports(content, 'test.ts');
+      expect(exports.some(e => e.name === 'MyFoo')).toBe(true);
+    });
+
+    it('should handle mixed type and value exports', () => {
+      const content = `export { type UserType, createUser };`;
+      const exports = plugin.parseExports(content, 'test.ts');
+      expect(exports.some(e => e.name === 'UserType')).toBe(true);
+      expect(exports.some(e => e.name === 'createUser')).toBe(true);
+    });
+  });
+
+  describe('FIX 3: export default async function', () => {
+    it('should detect export default async function with name', () => {
+      const content = `export default async function fetchData() {}`;
+      const exports = plugin.parseExports(content, 'test.ts');
+      expect(exports.some(e => e.name === 'fetchData' && e.isDefault)).toBe(true);
+    });
+
+    it('should still detect export default function (non-async)', () => {
+      const content = `export default function MyComponent() {}`;
+      const exports = plugin.parseExports(content, 'test.tsx');
+      expect(exports.some(e => e.name === 'MyComponent' && e.isDefault)).toBe(true);
+    });
+
+    it('should still detect export default class', () => {
+      const content = `export default class AppController {}`;
+      const exports = plugin.parseExports(content, 'test.ts');
+      expect(exports.some(e => e.name === 'AppController' && e.isDefault)).toBe(true);
+    });
+  });
+
+  describe('FIX 4: parseExports should use extractScript for framework files', () => {
+    it('should detect exports from Vue SFC script block', () => {
+      const content = `<template><div>{{ msg }}</div></template>
+<script setup>
+export function helper() {}
+export const API_URL = 'http://example.com';
+</script>`;
+      const exports = plugin.parseExports(content, 'test.vue');
+      expect(exports.some(e => e.name === 'helper')).toBe(true);
+      expect(exports.some(e => e.name === 'API_URL')).toBe(true);
+    });
+
+    it('should detect exports from Svelte script block', () => {
+      const content = `<script>
+export function formatValue(v) { return v; }
+</script>
+<button>Click</button>`;
+      const exports = plugin.parseExports(content, 'test.svelte');
+      expect(exports.some(e => e.name === 'formatValue')).toBe(true);
     });
   });
 
@@ -321,11 +390,6 @@ const result = formatValue(count);
 <button>{count}</button>`;
       const ids = plugin.findUsedIdentifiers(content, 'test.svelte');
       expect(ids.some(id => id.name === 'formatValue')).toBe(true);
-    });
-
-    it('should recognize Svelte component keywords', () => {
-      expect(plugin.isBuiltInOrKeyword('SvelteComponent')).toBe(true);
-      expect(plugin.isBuiltInOrKeyword('SvelteComponentDev')).toBe(true);
     });
   });
 

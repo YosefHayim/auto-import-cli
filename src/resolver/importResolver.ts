@@ -122,17 +122,19 @@ export class ImportResolver {
       exports.push({ name: match[1], source: filePath, isDefault: false, isType: true });
     }
 
-    const exportDefaultNameRegex = /export\s+default\s+(class|function)\s+(\w+)/g;
+    const exportDefaultNameRegex = /export\s+default\s+(async\s+)?(class|function)\s+(\w+)/g;
     while ((match = exportDefaultNameRegex.exec(content)) !== null) {
-      exports.push({ name: match[2], source: filePath, isDefault: true });
+      exports.push({ name: match[3], source: filePath, isDefault: true });
     }
 
     const exportNamedRegex = /export\s+\{([^}]+)\}/g;
     while ((match = exportNamedRegex.exec(content)) !== null) {
       const names = match[1].split(',').map(s => s.trim()).filter(s => s.length > 0);
       names.forEach(name => {
-        const parts = name.split(/\s*as\s*/i);
-        exports.push({ name: parts[parts.length - 1], source: filePath, isDefault: false });
+        const stripped = name.replace(/^type\s+/, '');
+        const parts = stripped.split(/\s+as\s+/);
+        const exportedName = parts[parts.length - 1].replace(/^type\s+/, '');
+        exports.push({ name: exportedName, source: filePath, isDefault: false });
       });
     }
 
@@ -143,7 +145,7 @@ export class ImportResolver {
     try {
       const tsconfigPath = path.join(this.options.projectRoot, 'tsconfig.json');
       const content = await fs.readFile(tsconfigPath, 'utf-8');
-      const tsconfig = JSON.parse(content);
+      const tsconfig = JSON.parse(stripJsonComments(content));
 
       const baseUrl = tsconfig.compilerOptions?.baseUrl || '.';
       const paths: Record<string, string[]> = tsconfig.compilerOptions?.paths || {};
@@ -184,7 +186,7 @@ export class ImportResolver {
 
       if (normalizedToFile.startsWith(normalizedTarget)) {
         const remainder = normalizedToFile.slice(normalizedTarget.length);
-        const withoutExt = remainder.replace(/\.(ts|tsx|js|jsx|py)$/, '');
+        const withoutExt = remainder.replace(/\\/g, '/').replace(/\.(ts|tsx|js|jsx|py)$/, '');
         return alias.prefix + withoutExt;
       }
     }
@@ -199,7 +201,7 @@ export class ImportResolver {
     }
 
     const fromDir = path.dirname(fromFile);
-    let relativePath = path.relative(fromDir, toFile);
+    let relativePath = path.relative(fromDir, toFile).replace(/\\/g, '/');
     
     relativePath = relativePath.replace(/\.(ts|tsx|js|jsx|py)$/, '');
     
@@ -217,4 +219,11 @@ export class ImportResolver {
   getPathAliases(): PathAlias[] {
     return this.pathAliases;
   }
+}
+
+function stripJsonComments(text: string): string {
+  let result = text.replace(/\/\*[\s\S]*?\*\//g, '');
+  result = result.replace(/\/\/.*$/gm, '');
+  result = result.replace(/,\s*([}\]])/g, '$1');
+  return result;
 }

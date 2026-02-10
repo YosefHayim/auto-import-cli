@@ -25,45 +25,48 @@ export class JsTsPlugin implements LanguagePlugin {
   }
 
   parseExports(content: string, filePath: string): ExportInfo[] {
+    const scriptContent = this.extractScript(content, filePath);
     const exports: ExportInfo[] = [];
     let match;
 
     const exportFunctionRegex = /export\s+(async\s+)?function\s+(\w+)/g;
-    while ((match = exportFunctionRegex.exec(content)) !== null) {
+    while ((match = exportFunctionRegex.exec(scriptContent)) !== null) {
       exports.push({ name: match[2], source: filePath, isDefault: false });
     }
 
     const exportVarRegex = /export\s+(const|let|var)\s+(\w+)/g;
-    while ((match = exportVarRegex.exec(content)) !== null) {
+    while ((match = exportVarRegex.exec(scriptContent)) !== null) {
       exports.push({ name: match[2], source: filePath, isDefault: false });
     }
 
     const exportClassRegex = /export\s+class\s+(\w+)/g;
-    while ((match = exportClassRegex.exec(content)) !== null) {
+    while ((match = exportClassRegex.exec(scriptContent)) !== null) {
       exports.push({ name: match[1], source: filePath, isDefault: false });
     }
 
     const exportInterfaceRegex = /export\s+interface\s+(\w+)/g;
-    while ((match = exportInterfaceRegex.exec(content)) !== null) {
+    while ((match = exportInterfaceRegex.exec(scriptContent)) !== null) {
       exports.push({ name: match[1], source: filePath, isDefault: false, isType: true });
     }
 
     const exportTypeRegex = /export\s+type\s+(\w+)/g;
-    while ((match = exportTypeRegex.exec(content)) !== null) {
+    while ((match = exportTypeRegex.exec(scriptContent)) !== null) {
       exports.push({ name: match[1], source: filePath, isDefault: false, isType: true });
     }
 
-    const exportDefaultNameRegex = /export\s+default\s+(class|function)\s+(\w+)/g;
-    while ((match = exportDefaultNameRegex.exec(content)) !== null) {
-      exports.push({ name: match[2], source: filePath, isDefault: true });
+    const exportDefaultNameRegex = /export\s+default\s+(async\s+)?(class|function)\s+(\w+)/g;
+    while ((match = exportDefaultNameRegex.exec(scriptContent)) !== null) {
+      exports.push({ name: match[3], source: filePath, isDefault: true });
     }
 
     const exportNamedRegex = /export\s+\{([^}]+)\}/g;
-    while ((match = exportNamedRegex.exec(content)) !== null) {
+    while ((match = exportNamedRegex.exec(scriptContent)) !== null) {
       const names = match[1].split(',').map(s => s.trim()).filter(s => s.length > 0);
       names.forEach(name => {
-        const parts = name.split(/\s*as\s*/i);
-        exports.push({ name: parts[parts.length - 1], source: filePath, isDefault: false });
+        const stripped = name.replace(/^type\s+/, '');
+        const parts = stripped.split(/\s+as\s+/);
+        const exportedName = parts[parts.length - 1].replace(/^type\s+/, '');
+        exports.push({ name: exportedName, source: filePath, isDefault: false });
       });
     }
 
@@ -145,23 +148,6 @@ const JSTS_BUILTINS = new Set([
 ]);
 
 const JSTS_KEYWORDS = new Set([
-  // React
-  'React', 'Component', 'Fragment', 'Interface', 'Type', 'Props', 'State', 'Ref',
-  // Angular
-  'Injectable', 'NgModule', 'Input', 'Output', 'EventEmitter',
-  'OnInit', 'OnDestroy', 'OnChanges', 'AfterViewInit',
-  'ViewChild', 'ViewChildren', 'ContentChild', 'ContentChildren',
-  'Pipe', 'Directive', 'HostListener', 'HostBinding',
-  'Inject', 'Optional', 'Self', 'SkipSelf',
-  'ChangeDetectorRef', 'ElementRef', 'TemplateRef', 'Renderer2',
-  'FormBuilder', 'FormGroup', 'FormControl', 'Validators',
-  'ActivatedRoute', 'Router', 'HttpClient',
-  'Observable', 'Subject', 'BehaviorSubject', 'Subscription',
-  // Vue
+  // Vue compiler macros — these are compiler-injected globals, not importable
   'defineProps', 'defineEmits', 'defineExpose', 'defineSlots', 'withDefaults',
-  // Svelte
-  'SvelteComponent', 'SvelteComponentDev',
-  // Next.js / Nuxt
-  'GetServerSideProps', 'GetStaticProps', 'GetStaticPaths',
-  'NextPage', 'NextApiRequest', 'NextApiResponse',
 ]);

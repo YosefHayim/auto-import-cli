@@ -83,7 +83,7 @@ export class AutoImportCli {
       const usedIdentifiers = plugin.findUsedIdentifiers(file.content, file.path);
 
       const importedNames = new Set<string>();
-      existingImports.forEach(imp => imp.imports.forEach(name => importedNames.add(name)));
+      existingImports.forEach(imp => { imp.imports.forEach(name => { importedNames.add(name); }); });
 
       const missingIdentifiers = usedIdentifiers
         .map(id => id.name)
@@ -229,7 +229,7 @@ export function createCli(): Command {
     .argument('[directory]', 'Directory to scan', '.')
     .option('-d, --dry-run', 'Show what would be changed without making changes')
     .option('-v, --verbose', 'Show detailed output')
-    .option('-e, --extensions <extensions>', 'File extensions to scan (comma-separated)', '.ts,.tsx,.js,.jsx,.vue,.svelte,.astro,.py')
+    .option('-e, --extensions <extensions>', 'File extensions to scan (comma-separated)')
     .option('-i, --ignore <patterns>', 'Patterns to ignore (comma-separated)')
     .option('-c, --config <path>', 'Path to config file')
     .option('--no-alias', 'Disable tsconfig path alias resolution')

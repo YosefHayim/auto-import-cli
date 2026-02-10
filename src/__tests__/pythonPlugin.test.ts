@@ -327,5 +327,80 @@ def main():
       const result = filePathToModule('/project/src/module.py');
       expect(result).not.toContain('.py');
     });
+
+    it('FIX 9: should remove __init__ from module path under src/', () => {
+      expect(filePathToModule('/project/src/pkg/__init__.py')).toBe('pkg');
+    });
+
+    it('FIX 9: should handle nested __init__.py under src/', () => {
+      expect(filePathToModule('/project/src/pkg/sub/__init__.py')).toBe('pkg.sub');
+    });
+  });
+
+  describe('FIX 6: multi-line parenthesized imports', () => {
+    it('should parse parenthesized from...import statements', () => {
+      const content = `from collections import (
+    OrderedDict,
+    defaultdict
+)`;
+      const imports = plugin.parseImports(content, 'test.py');
+      expect(imports).toHaveLength(1);
+      expect(imports[0].source).toBe('collections');
+      expect(imports[0].imports).toContain('OrderedDict');
+      expect(imports[0].imports).toContain('defaultdict');
+    });
+
+    it('should parse parenthesized imports with trailing comma', () => {
+      const content = `from typing import (
+    List,
+    Dict,
+    Optional,
+)`;
+      const imports = plugin.parseImports(content, 'test.py');
+      expect(imports).toHaveLength(1);
+      expect(imports[0].imports).toContain('List');
+      expect(imports[0].imports).toContain('Dict');
+      expect(imports[0].imports).toContain('Optional');
+    });
+  });
+
+  describe('FIX 7: identifiers inside docstrings should be ignored', () => {
+    it('should not detect identifiers inside triple-double-quoted strings', () => {
+      const content = `"""
+MyClass is documented here.
+SomeFunction(arg) is called.
+"""
+actual_call(arg)`;
+      const ids = plugin.findUsedIdentifiers(content, 'test.py');
+      expect(ids.some(id => id.name === 'MyClass')).toBe(false);
+      expect(ids.some(id => id.name === 'SomeFunction')).toBe(false);
+      expect(ids.some(id => id.name === 'actual_call')).toBe(true);
+    });
+
+    it('should not detect identifiers inside triple-single-quoted strings', () => {
+      const content = `'''
+MyClass is documented here.
+'''
+real_func(x)`;
+      const ids = plugin.findUsedIdentifiers(content, 'test.py');
+      expect(ids.some(id => id.name === 'MyClass')).toBe(false);
+      expect(ids.some(id => id.name === 'real_func')).toBe(true);
+    });
+  });
+
+  describe('FIX 8: class/def declaration lines should not be treated as usages', () => {
+    it('should not detect class declaration as usage', () => {
+      const content = `class MyService(BaseService):
+    pass`;
+      const ids = plugin.findUsedIdentifiers(content, 'test.py');
+      expect(ids.some(id => id.name === 'MyService')).toBe(false);
+    });
+
+    it('should not detect def declaration as usage', () => {
+      const content = `def process_data(items):
+    return items`;
+      const ids = plugin.findUsedIdentifiers(content, 'test.py');
+      expect(ids.some(id => id.name === 'process_data')).toBe(false);
+    });
   });
 });

@@ -10,16 +10,19 @@ export class PythonPlugin implements LanguagePlugin {
     const imports: ImportStatement[] = [];
     let match;
 
-    // from module import name1, name2
+    const normalized = content.replace(/from\s+([\w.]+)\s+import\s*\(([^)]*)\)/gs, (_m, mod: string, names: string) => {
+      const joined = names.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+      return `from ${mod} import ${joined}`;
+    });
+
     const fromImportRegex = /^from\s+([\w.]+)\s+import\s+(.+)$/gm;
-    while ((match = fromImportRegex.exec(content)) !== null) {
+    while ((match = fromImportRegex.exec(normalized)) !== null) {
       const names = match[2].split(',').map(s => s.trim()).filter(s => s.length > 0 && s !== '\\');
       imports.push({ source: match[1], imports: names, isDefault: false });
     }
 
-    // import module / import module as alias
     const importRegex = /^import\s+([\w.]+)(?:\s+as\s+(\w+))?$/gm;
-    while ((match = importRegex.exec(content)) !== null) {
+    while ((match = importRegex.exec(normalized)) !== null) {
       const name = match[2] || match[1].split('.').pop()!;
       imports.push({ source: match[1], imports: [name], isDefault: true });
     }
@@ -29,12 +32,14 @@ export class PythonPlugin implements LanguagePlugin {
 
   findUsedIdentifiers(content: string, _filePath: string): UsedIdentifier[] {
     const identifiers: UsedIdentifier[] = [];
-    const lines = content.split('\n');
+    const stripped = content.replace(/"""[\s\S]*?"""/g, '').replace(/'''[\s\S]*?'''/g, '');
+    const lines = stripped.split('\n');
 
     lines.forEach((line, lineIndex) => {
       const trimmed = line.trim();
       if (trimmed.startsWith('#') || trimmed.startsWith('import ') ||
-          trimmed.startsWith('from ') || trimmed === '') {
+          trimmed.startsWith('from ') || trimmed === '' ||
+          trimmed.startsWith('class ') || trimmed.startsWith('def ')) {
         return;
       }
 
@@ -165,7 +170,9 @@ export class PythonPlugin implements LanguagePlugin {
     const startIdx = srcIdx >= 0 ? srcIdx + 1 : (libIdx >= 0 ? libIdx + 1 : -1);
 
     if (startIdx > 0) {
-      return parts.slice(startIdx).join('.');
+      const result = parts.slice(startIdx);
+      if (result[result.length - 1] === '__init__') result.pop();
+      return result.join('.');
     }
 
     const initIdx = parts.lastIndexOf('__init__');

@@ -73,6 +73,12 @@ async function stepExtensions(state: WizardState): Promise<StepResult> {
     p.log.warn('No supported file types detected — showing all available types.');
   }
 
+  if (state.supportedExts.length === 0) {
+    p.log.warn('No supported file extensions available.');
+    state.selectedExtensions = [];
+    return;
+  }
+
   const extensions = await p.multiselect({
     message: 'Which file types should import-pilot scan?',
     options: state.supportedExts.map(ext => ({
@@ -141,8 +147,7 @@ async function stepConfigAndScan(state: WizardState): Promise<StepResult> {
   cancelled(runScan);
 
   if (runScan) {
-    const spin = p.spinner();
-    spin.start('Scanning for missing imports...');
+    p.log.info('Running scan...');
     try {
       const { AutoImportCli } = await import('./autoImportCli.js');
       const cli = new AutoImportCli();
@@ -152,9 +157,8 @@ async function stepConfigAndScan(state: WizardState): Promise<StepResult> {
         extensions: state.selectedExtensions.join(','),
         noAlias: !state.useAliases,
       });
-      spin.stop('Scan complete');
+      p.log.success('Scan complete');
     } catch (err) {
-      spin.stop('Scan encountered an error');
       p.log.error(String(err));
     }
   }
@@ -175,6 +179,10 @@ async function stepScripts(state: WizardState): Promise<StepResult> {
 
     if (addScripts) {
       pkg.scripts = pkg.scripts || {};
+      if (pkg.scripts['import-pilot']) {
+        const overwrite = await p.confirm({ message: 'import-pilot scripts already exist. Overwrite?' });
+        if (p.isCancel(overwrite) || !overwrite) return;
+      }
       pkg.scripts['import-pilot'] = 'import-pilot';
       pkg.scripts['import-pilot:check'] = 'import-pilot --dry-run --verbose';
       pkg.scripts['import-pilot:fix'] = 'import-pilot';
@@ -203,12 +211,16 @@ async function stepHusky(state: WizardState): Promise<StepResult> {
     });
     if (!p.isCancel(addHook) && addHook) {
       const hookPath = path.join(state.projectRoot, '.husky', 'pre-commit');
-      const existing = await fs.readFile(hookPath, 'utf-8');
-      if (!existing.includes('import-pilot')) {
-        await fs.writeFile(hookPath, existing.trimEnd() + '\nnpx import-pilot --dry-run\n', 'utf-8');
-        p.log.success('Added import-pilot check to pre-commit hook');
-      } else {
-        p.log.info('import-pilot already present in pre-commit hook');
+      try {
+        const existing = await fs.readFile(hookPath, 'utf-8');
+        if (!existing.includes('import-pilot')) {
+          await fs.writeFile(hookPath, existing.trimEnd() + '\nnpx import-pilot --dry-run\n', 'utf-8');
+          p.log.success('Added import-pilot check to pre-commit hook');
+        } else {
+          p.log.info('import-pilot already present in pre-commit hook');
+        }
+      } catch {
+        p.log.warn('Could not read pre-commit hook file');
       }
     }
   } else if (husky.installed && !husky.hasPreCommit) {

@@ -22,5 +22,5 @@ export function getAllExtensions(plugins?: LanguagePlugin[]): string[] {
 }
 
 export function getDefaultPlugins(): LanguagePlugin[] {
-  return DEFAULT_PLUGINS;
+  return [...DEFAULT_PLUGINS];
 }
