@@ -52,11 +52,12 @@ export class RustPlugin implements LanguagePlugin {
         }
       }
 
-      // Qualified path usage: Vec::new(), HashMap::new(), Type::method()
-      const qualifiedRegex = /(?<!\w)([A-Z][a-zA-Z0-9_]*)(?:::\w+)+/g;
+      // Qualified path usage: Vec::new(), HashMap::new(), fs::read(), io::Write
+      const qualifiedRegex = /(?<!\w)([a-zA-Z_][a-zA-Z0-9_]*)(?:::\w+)+/g;
       while ((m = qualifiedRegex.exec(line)) !== null) {
         const name = m[1];
         if (this.isDefinitionLine(trimmed, name)) continue;
+        if (RUST_KEYWORDS.has(name)) continue;
         if (!this.isBuiltInOrKeyword(name) && !seen.has(name)) {
           seen.add(name);
           identifiers.push({ name, line: lineIndex + 1, column: m.index });
@@ -106,8 +107,7 @@ export class RustPlugin implements LanguagePlugin {
     const stripped = this.stripCommentsAndStrings(content);
     let match;
 
-    // pub fn name
-    const pubFnRegex = /^[ \t]*pub(?:\s*\(\s*crate\s*\))?\s+(?:async\s+)?fn\s+(\w+)/gm;
+    const pubFnRegex = /^[ \t]*pub(?:\s*\(\s*crate\s*\))?\s+(?:(?:async|unsafe|const)\s+)*(?:extern\s+(?:"[^"]*"\s+)?)?fn\s+(\w+)/gm;
     while ((match = pubFnRegex.exec(stripped)) !== null) {
       exports.push({ name: match[1], source: filePath, isDefault: false });
     }
@@ -254,32 +254,33 @@ export class RustPlugin implements LanguagePlugin {
   }
 
   private stripCommentsAndStrings(content: string): string {
-    // Order matters: strings before comments (strings may contain //)
-    let result = content.replace(/r#*"[\s\S]*?"#*/g, '""');
-    result = result.replace(/"(?:[^"\\]|\\.)*"/g, '""');
-    // Remove block comments
-    result = result.replace(/\/\*[\s\S]*?\*\//g, '');
-    // Remove line comments
-    result = result.replace(/\/\/.*$/gm, '');
-    return result;
+    // Single-pass regex: handles regular strings, raw strings, block comments, line comments
+    // Order matters: raw strings before regular strings, strings before comments
+    const combinedRegex = /r(#+)"[\s\S]*?"\1|"(?:[^"\\]|\\.)*"|\/\*[\s\S]*?\*\/|\/\/.*$/gm;
+    return content.replace(combinedRegex, (match) => {
+      // Line comments → remove entirely
+      if (match.startsWith('//')) return '';
+      // Block comments → remove entirely
+      if (match.startsWith('/*')) return '';
+      // Strings (raw or regular) → replace with empty string literal
+      return '""';
+    });
   }
 
   private isDefinitionLine(trimmed: string, name: string): boolean {
     const defPatterns = [
-      new RegExp(`^pub\\s+(struct|enum|trait|type|fn|mod)\\s+${name}\\b`),
-      new RegExp(`^pub\\s*\\(\\s*crate\\s*\\)\\s+(struct|enum|trait|type|fn|mod)\\s+${name}\\b`),
-      new RegExp(`^(struct|enum|trait|type|fn|mod)\\s+${name}\\b`),
-      new RegExp(`^impl\\s+${name}\\b`),
-      new RegExp(`^impl\\s*<[^>]*>\\s+${name}\\b`),
+      new RegExp(`^pub\\s+(?:(?:async|unsafe|const)\\s+)*(?:extern\\s+(?:"[^"]*"\\s+)?)?(?:struct|enum|trait|type|fn|mod)\\s+${name}\\b`),
+      new RegExp(`^pub\\s*\\(\\s*crate\\s*\\)\\s+(?:(?:async|unsafe|const)\\s+)*(?:extern\\s+(?:"[^"]*"\\s+)?)?(?:struct|enum|trait|type|fn|mod)\\s+${name}\\b`),
+      new RegExp(`^(?:(?:async|unsafe|const)\\s+)*(?:extern\\s+(?:"[^"]*"\\s+)?)?(?:struct|enum|trait|type|fn|mod)\\s+${name}\\b`),
     ];
     return defPatterns.some(p => p.test(trimmed));
   }
 
   private isFunctionDefinitionLine(trimmed: string, name: string): boolean {
     const defPatterns = [
-      new RegExp(`^pub\\s+(?:async\\s+)?fn\\s+${name}\\b`),
-      new RegExp(`^pub\\s*\\(\\s*crate\\s*\\)\\s+(?:async\\s+)?fn\\s+${name}\\b`),
-      new RegExp(`^(?:async\\s+)?fn\\s+${name}\\b`),
+      new RegExp(`^pub\\s+(?:(?:async|unsafe|const)\\s+)*(?:extern\\s+(?:"[^"]*"\\s+)?)?fn\\s+${name}\\b`),
+      new RegExp(`^pub\\s*\\(\\s*crate\\s*\\)\\s+(?:(?:async|unsafe|const)\\s+)*(?:extern\\s+(?:"[^"]*"\\s+)?)?fn\\s+${name}\\b`),
+      new RegExp(`^(?:(?:async|unsafe|const)\\s+)*(?:extern\\s+(?:"[^"]*"\\s+)?)?fn\\s+${name}\\b`),
     ];
     return defPatterns.some(p => p.test(trimmed));
   }
