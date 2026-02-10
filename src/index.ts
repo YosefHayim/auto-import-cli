@@ -7,6 +7,7 @@ export { AutoImportCli, createCli } from './cli/autoImportCli.js';
 // Plugin system
 export { JsTsPlugin } from './plugins/jsTsPlugin.js';
 export { PythonPlugin } from './plugins/pythonPlugin.js';
+export { RustPlugin } from './plugins/rustPlugin.js';
 export { getPluginForExtension, getAllExtensions, getDefaultPlugins } from './plugins/index.js';
 
 export type { ScanOptions, ScannedFile } from './scanner/fileScanner.js';

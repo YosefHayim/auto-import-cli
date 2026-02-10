@@ -1,6 +1,7 @@
 import { getPluginForExtension, getAllExtensions, getDefaultPlugins } from '@/plugins/index';
 import { JsTsPlugin } from '@/plugins/jsTsPlugin';
 import { PythonPlugin } from '@/plugins/pythonPlugin';
+import { RustPlugin } from '@/plugins/rustPlugin';
 
 describe('Plugin Registry', () => {
   describe('getPluginForExtension', () => {
@@ -44,8 +45,12 @@ describe('Plugin Registry', () => {
       expect(plugin).toBeInstanceOf(PythonPlugin);
     });
 
+    it('should return RustPlugin for .rs files', () => {
+      const plugin = getPluginForExtension('.rs');
+      expect(plugin).toBeInstanceOf(RustPlugin);
+    });
+
     it('should return null for unsupported extensions', () => {
-      expect(getPluginForExtension('.rs')).toBeNull();
       expect(getPluginForExtension('.go')).toBeNull();
       expect(getPluginForExtension('.rb')).toBeNull();
     });
@@ -73,6 +78,7 @@ describe('Plugin Registry', () => {
       expect(exts).toContain('.svelte');
       expect(exts).toContain('.astro');
       expect(exts).toContain('.py');
+      expect(exts).toContain('.rs');
     });
 
     it('should accept custom plugin list', () => {
@@ -82,11 +88,12 @@ describe('Plugin Registry', () => {
   });
 
   describe('getDefaultPlugins', () => {
-    it('should return JsTsPlugin and PythonPlugin', () => {
+    it('should return JsTsPlugin, PythonPlugin, and RustPlugin', () => {
       const plugins = getDefaultPlugins();
-      expect(plugins).toHaveLength(2);
+      expect(plugins).toHaveLength(3);
       expect(plugins.some(p => p instanceof JsTsPlugin)).toBe(true);
       expect(plugins.some(p => p instanceof PythonPlugin)).toBe(true);
+      expect(plugins.some(p => p instanceof RustPlugin)).toBe(true);
     });
   });
 });
