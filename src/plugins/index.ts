@@ -2,16 +2,19 @@ export type { LanguagePlugin } from './languagePlugin.js';
 export { JsTsPlugin } from './jsTsPlugin.js';
 export { PythonPlugin } from './pythonPlugin.js';
 export { ElixirPlugin } from './elixirPlugin.js';
+export { GoPlugin } from './goPlugin.js';
 
 import type { LanguagePlugin } from './languagePlugin.js';
 import { JsTsPlugin } from './jsTsPlugin.js';
 import { PythonPlugin } from './pythonPlugin.js';
 import { ElixirPlugin } from './elixirPlugin.js';
+import { GoPlugin } from './goPlugin.js';
 
 const DEFAULT_PLUGINS: LanguagePlugin[] = [
   new JsTsPlugin(),
   new PythonPlugin(),
   new ElixirPlugin(),
+  new GoPlugin(),
 ];
 
 export function getPluginForExtension(ext: string, plugins?: LanguagePlugin[]): LanguagePlugin | null {

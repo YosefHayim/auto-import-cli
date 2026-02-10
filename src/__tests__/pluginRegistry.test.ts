@@ -2,6 +2,7 @@ import { getPluginForExtension, getAllExtensions, getDefaultPlugins } from '@/pl
 import { JsTsPlugin } from '@/plugins/jsTsPlugin';
 import { PythonPlugin } from '@/plugins/pythonPlugin';
 import { ElixirPlugin } from '@/plugins/elixirPlugin';
+import { GoPlugin } from '@/plugins/goPlugin';
 
 describe('Plugin Registry', () => {
   describe('getPluginForExtension', () => {
@@ -55,9 +56,13 @@ describe('Plugin Registry', () => {
       expect(plugin).toBeInstanceOf(ElixirPlugin);
     });
 
+    it('should return GoPlugin for .go files', () => {
+      const plugin = getPluginForExtension('.go');
+      expect(plugin).toBeInstanceOf(GoPlugin);
+    });
+
     it('should return null for unsupported extensions', () => {
       expect(getPluginForExtension('.rs')).toBeNull();
-      expect(getPluginForExtension('.go')).toBeNull();
       expect(getPluginForExtension('.rb')).toBeNull();
     });
 
@@ -86,6 +91,7 @@ describe('Plugin Registry', () => {
       expect(exts).toContain('.py');
       expect(exts).toContain('.ex');
       expect(exts).toContain('.exs');
+      expect(exts).toContain('.go');
     });
 
     it('should accept custom plugin list', () => {
@@ -95,12 +101,13 @@ describe('Plugin Registry', () => {
   });
 
   describe('getDefaultPlugins', () => {
-    it('should return JsTsPlugin, PythonPlugin, and ElixirPlugin', () => {
+    it('should return JsTsPlugin, PythonPlugin, ElixirPlugin, and GoPlugin', () => {
       const plugins = getDefaultPlugins();
-      expect(plugins).toHaveLength(3);
+      expect(plugins).toHaveLength(4);
       expect(plugins.some(p => p instanceof JsTsPlugin)).toBe(true);
       expect(plugins.some(p => p instanceof PythonPlugin)).toBe(true);
       expect(plugins.some(p => p instanceof ElixirPlugin)).toBe(true);
+      expect(plugins.some(p => p instanceof GoPlugin)).toBe(true);
     });
 
     it('FIX 14: should return a new array each time (not mutable reference)', () => {
@@ -108,7 +115,7 @@ describe('Plugin Registry', () => {
       const plugins2 = getDefaultPlugins();
       expect(plugins1).not.toBe(plugins2);
       plugins1.push(new PythonPlugin());
-      expect(getDefaultPlugins()).toHaveLength(2);
+      expect(getDefaultPlugins()).toHaveLength(4);
     });
   });
 });
