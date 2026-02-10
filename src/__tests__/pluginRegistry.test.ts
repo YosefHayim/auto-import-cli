@@ -1,6 +1,7 @@
 import { getPluginForExtension, getAllExtensions, getDefaultPlugins } from '@/plugins/index';
 import { JsTsPlugin } from '@/plugins/jsTsPlugin';
 import { PythonPlugin } from '@/plugins/pythonPlugin';
+import { GoPlugin } from '@/plugins/goPlugin';
 
 describe('Plugin Registry', () => {
   describe('getPluginForExtension', () => {
@@ -44,9 +45,13 @@ describe('Plugin Registry', () => {
       expect(plugin).toBeInstanceOf(PythonPlugin);
     });
 
+    it('should return GoPlugin for .go files', () => {
+      const plugin = getPluginForExtension('.go');
+      expect(plugin).toBeInstanceOf(GoPlugin);
+    });
+
     it('should return null for unsupported extensions', () => {
       expect(getPluginForExtension('.rs')).toBeNull();
-      expect(getPluginForExtension('.go')).toBeNull();
       expect(getPluginForExtension('.rb')).toBeNull();
     });
 
@@ -73,6 +78,7 @@ describe('Plugin Registry', () => {
       expect(exts).toContain('.svelte');
       expect(exts).toContain('.astro');
       expect(exts).toContain('.py');
+      expect(exts).toContain('.go');
     });
 
     it('should accept custom plugin list', () => {
@@ -82,11 +88,12 @@ describe('Plugin Registry', () => {
   });
 
   describe('getDefaultPlugins', () => {
-    it('should return JsTsPlugin and PythonPlugin', () => {
+    it('should return JsTsPlugin, PythonPlugin, and GoPlugin', () => {
       const plugins = getDefaultPlugins();
-      expect(plugins).toHaveLength(2);
+      expect(plugins).toHaveLength(3);
       expect(plugins.some(p => p instanceof JsTsPlugin)).toBe(true);
       expect(plugins.some(p => p instanceof PythonPlugin)).toBe(true);
+      expect(plugins.some(p => p instanceof GoPlugin)).toBe(true);
     });
   });
 });
