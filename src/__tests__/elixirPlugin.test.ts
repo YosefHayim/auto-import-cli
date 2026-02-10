@@ -30,6 +30,18 @@ describe('ElixirPlugin', () => {
       expect(imports[0].isDefault).toBe(true);
     });
 
+    it('should parse import with except: as namespace and not list excluded names (#43)', () => {
+      const content = `import Foo.Bar, except: [baz: 1, qux: 2]`;
+      const imports = plugin.parseImports(content, 'test.ex');
+      expect(imports).toHaveLength(1);
+      expect(imports[0].source).toBe('Foo.Bar');
+      expect(imports[0].imports).toEqual(['Bar']);
+      expect(imports[0].isDefault).toBe(false);
+      expect(imports[0].isNamespace).toBe(true);
+      expect(imports[0].imports).not.toContain('baz');
+      expect(imports[0].imports).not.toContain('qux');
+    });
+
     it('should parse import with only: option', () => {
       const content = `import Ecto.Query, only: [from: 2, where: 3]`;
       const imports = plugin.parseImports(content, 'test.ex');
@@ -39,28 +51,34 @@ describe('ElixirPlugin', () => {
       expect(imports[0].isDefault).toBe(false);
     });
 
-    it('should parse use statements', () => {
+    it('should parse use statements as namespace imports (#44)', () => {
       const content = `use GenServer`;
       const imports = plugin.parseImports(content, 'test.ex');
       expect(imports).toHaveLength(1);
       expect(imports[0].source).toBe('GenServer');
       expect(imports[0].imports).toEqual(['GenServer']);
+      expect(imports[0].isDefault).toBe(false);
+      expect(imports[0].isNamespace).toBe(true);
     });
 
-    it('should parse use with options', () => {
+    it('should parse use with options as namespace import (#44)', () => {
       const content = `use Ecto.Schema`;
       const imports = plugin.parseImports(content, 'test.ex');
       expect(imports).toHaveLength(1);
       expect(imports[0].source).toBe('Ecto.Schema');
       expect(imports[0].imports).toEqual(['Schema']);
+      expect(imports[0].isDefault).toBe(false);
+      expect(imports[0].isNamespace).toBe(true);
     });
 
-    it('should parse require statements', () => {
+    it('should parse require statements as namespace imports (#44)', () => {
       const content = `require Logger`;
       const imports = plugin.parseImports(content, 'test.ex');
       expect(imports).toHaveLength(1);
       expect(imports[0].source).toBe('Logger');
       expect(imports[0].imports).toEqual(['Logger']);
+      expect(imports[0].isDefault).toBe(false);
+      expect(imports[0].isNamespace).toBe(true);
     });
 
     it('should parse multiple import types together', () => {
@@ -254,6 +272,26 @@ end`;
       const exports = plugin.parseExports(content, '/project/lib/router.ex');
       expect(exports.some(e => e.name === 'Router')).toBe(true);
       expect(exports.some(e => e.name === 'route')).toBe(true);
+    });
+
+    it('should detect defmodule with one-line do: form (#45)', () => {
+      const content = `defmodule MyApp.Config, do: use(Application)`;
+      const exports = plugin.parseExports(content, '/project/lib/my_app/config.ex');
+      expect(exports.some(e => e.name === 'Config')).toBe(true);
+      expect(exports.some(e => e.name === 'MyApp.Config')).toBe(true);
+    });
+
+    it('should detect zero-arity public functions (#46)', () => {
+      const content = `def start do
+  :ok
+end
+
+def stop do
+  :ok
+end`;
+      const exports = plugin.parseExports(content, '/project/lib/server.ex');
+      expect(exports.some(e => e.name === 'start')).toBe(true);
+      expect(exports.some(e => e.name === 'stop')).toBe(true);
     });
   });
 

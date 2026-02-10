@@ -27,11 +27,14 @@ export class ElixirPlugin implements LanguagePlugin {
       imports.push({ source: fullModule, imports: names, isDefault: false });
     }
 
+    // `import Mod, except: [func: arity]` imports ALL functions from Mod EXCEPT the listed ones.
+    // We record the module as a namespace import (isNamespace: true) but do NOT list the
+    // except'd function names in `imports` — they are excluded and may still need explicit import.
     const importExceptRegex = /^\s*import\s+([\w.]+)\s*,\s*except:\s*\[([^\]]*)\]$/gm;
     while ((match = importExceptRegex.exec(content)) !== null) {
       const fullModule = match[1];
       const shortName = fullModule.split('.').pop()!;
-      imports.push({ source: fullModule, imports: [shortName], isDefault: true, isNamespace: true });
+      imports.push({ source: fullModule, imports: [shortName], isDefault: false, isNamespace: true });
     }
 
     const importPlainRegex = /^\s*import\s+([\w.]+)\s*$/gm;
@@ -41,18 +44,21 @@ export class ElixirPlugin implements LanguagePlugin {
       imports.push({ source: fullModule, imports: [shortName], isDefault: true });
     }
 
+    // `use` injects macros via __using__/1 — does NOT alias the module.
+    // `use Phoenix.Router` does not make `Router.get` work without an explicit alias.
     const useRegex = /^\s*use\s+([\w.]+)(?:\s*,\s*(.+))?$/gm;
     while ((match = useRegex.exec(content)) !== null) {
       const fullModule = match[1];
       const shortName = fullModule.split('.').pop()!;
-      imports.push({ source: fullModule, imports: [shortName], isDefault: true });
+      imports.push({ source: fullModule, imports: [shortName], isDefault: false, isNamespace: true });
     }
 
+    // `require` makes a module available for macros — does NOT alias it.
     const requireRegex = /^\s*require\s+([\w.]+)$/gm;
     while ((match = requireRegex.exec(content)) !== null) {
       const fullModule = match[1];
       const shortName = fullModule.split('.').pop()!;
-      imports.push({ source: fullModule, imports: [shortName], isDefault: true });
+      imports.push({ source: fullModule, imports: [shortName], isDefault: false, isNamespace: true });
     }
 
     return imports;
@@ -100,7 +106,7 @@ export class ElixirPlugin implements LanguagePlugin {
     const exports: ExportInfo[] = [];
     let match;
 
-    const defmoduleRegex = /^\s*defmodule\s+([\w.]+)\s+do\b/gm;
+    const defmoduleRegex = /^\s*defmodule\s+([\w.]+)(?:\s+do\b|\s*,\s*do:)/gm;
     while ((match = defmoduleRegex.exec(content)) !== null) {
       const fullName = match[1];
       const shortName = fullName.split('.').pop()!;
