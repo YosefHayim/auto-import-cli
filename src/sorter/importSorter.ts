@@ -82,7 +82,7 @@ function classifyJsTsSource(source: string): ImportGroup {
 
 export function classifyPythonImport(importStatement: string): PythonImportGroup {
   const fromMatch = importStatement.match(/^\s*from\s+(\S+)\s+import/);
-  const importMatch = importStatement.match(/^\s*import\s+(\S+)/);
+  const importMatch = importStatement.match(/^\s*import\s+([\w.]+)/);
   const moduleName = fromMatch ? fromMatch[1] : importMatch ? importMatch[1] : '';
 
   if (!moduleName) {
@@ -188,7 +188,7 @@ function extractSource(importStatement: string): string {
   const pyFromMatch = importStatement.match(/^\s*from\s+(\S+)\s+import/);
   if (pyFromMatch) return pyFromMatch[1];
 
-  const pyImportMatch = importStatement.match(/^\s*import\s+(\S+)/);
+  const pyImportMatch = importStatement.match(/^\s*import\s+([\w.]+)/);
   if (pyImportMatch) return pyImportMatch[1];
 
   return importStatement;
