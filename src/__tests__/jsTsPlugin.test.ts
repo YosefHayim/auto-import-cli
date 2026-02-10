@@ -284,6 +284,134 @@ import { foo } from 'bar';`;
     });
   });
 
+  describe('FIX #50: shebang lines must remain first line', () => {
+    it('should insert imports after shebang line', () => {
+      const content = `#!/usr/bin/env node
+console.log('hello');`;
+      const pos = plugin.getImportInsertPosition(content, 'test.ts');
+      expect(pos).toBe(1);
+    });
+
+    it('should insert imports after shebang and preserve shebang on insertImports', () => {
+      const content = `#!/usr/bin/env node
+console.log('hello');`;
+      const result = plugin.insertImports(content, [`import { foo } from 'bar';`], 'test.ts');
+      const lines = result.split('\n');
+      expect(lines[0]).toBe('#!/usr/bin/env node');
+      expect(lines[1]).toBe(`import { foo } from 'bar';`);
+    });
+
+    it('should insert after shebang + existing imports', () => {
+      const content = `#!/usr/bin/env node
+import { existingFn } from './utils';
+
+console.log('hello');`;
+      const pos = plugin.getImportInsertPosition(content, 'test.ts');
+      expect(pos).toBe(2);
+    });
+
+    it('should handle shebang with comments after it', () => {
+      const content = `#!/usr/bin/env node
+// A comment
+
+function main() {}`;
+      const pos = plugin.getImportInsertPosition(content, 'test.ts');
+      expect(pos).toBe(3);
+    });
+  });
+
+  describe('FIX #23: multi-line block comments should not break insert position', () => {
+    it('should skip multi-line block comment at top of file', () => {
+      const content = `/*
+ * This is a license header
+ * that spans multiple lines
+ */
+function main() {}`;
+      const pos = plugin.getImportInsertPosition(content, 'test.ts');
+      expect(pos).toBe(4);
+    });
+
+    it('should insert after block comment and existing imports', () => {
+      const content = `/*
+ * License header
+ */
+import { foo } from 'bar';
+
+function main() {}`;
+      const pos = plugin.getImportInsertPosition(content, 'test.ts');
+      expect(pos).toBe(4);
+    });
+
+    it('should handle block comment with text not starting with *', () => {
+      const content = `/*
+This is a comment line without leading asterisk
+Another line without asterisk
+*/
+function main() {}`;
+      const pos = plugin.getImportInsertPosition(content, 'test.ts');
+      expect(pos).toBe(4);
+    });
+
+    it('should handle single-line block comment', () => {
+      const content = `/* single line comment */
+function main() {}`;
+      const pos = plugin.getImportInsertPosition(content, 'test.ts');
+      expect(pos).toBe(1);
+    });
+
+    it('should handle insertImports with multi-line block comment', () => {
+      const content = `/*
+ * License
+ */
+function main() {}`;
+      const result = plugin.insertImports(content, [`import { foo } from 'bar';`], 'test.ts');
+      const lines = result.split('\n');
+      expect(lines[0]).toBe('/*');
+      expect(lines[3]).toBe(`import { foo } from 'bar';`);
+    });
+  });
+
+  describe('FIX #22: getImportInsertPosition returns absolute line for framework files', () => {
+    it('should return absolute line number for Vue SFC', () => {
+      const content = `<template><div>{{ msg }}</div></template>
+<script setup>
+import { ref } from 'vue';
+const msg = ref('hello');
+</script>`;
+      const pos = plugin.getImportInsertPosition(content, 'test.vue');
+      expect(pos).toBeGreaterThanOrEqual(3);
+    });
+
+    it('should return absolute line number for Vue SFC without existing imports', () => {
+      const content = `<template><div>Hello</div></template>
+<script setup>
+const msg = 'hello';
+</script>`;
+      const pos = plugin.getImportInsertPosition(content, 'test.vue');
+      expect(pos).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should return absolute line number for Svelte file', () => {
+      const content = `<script>
+import { onMount } from 'svelte';
+let count = 0;
+</script>
+<button>{count}</button>`;
+      const pos = plugin.getImportInsertPosition(content, 'test.svelte');
+      expect(pos).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should return absolute line number for Astro frontmatter', () => {
+      const content = `---
+import Card from './Card.astro';
+const title = 'Hello';
+---
+<Card>{title}</Card>`;
+      const pos = plugin.getImportInsertPosition(content, 'test.astro');
+      expect(pos).toBeGreaterThanOrEqual(2);
+    });
+  });
+
   describe('FIX 1: as-split should not split identifiers containing "as" substring', () => {
     it('should not split hasError into Error via as-regex', () => {
       const content = `export { hasError };`;

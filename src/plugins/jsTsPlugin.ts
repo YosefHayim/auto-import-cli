@@ -89,7 +89,12 @@ export class JsTsPlugin implements LanguagePlugin {
     if (FRAMEWORK_EXTENSIONS.has(ext)) {
       const frameworkResult = this.frameworkParser.parseFrameworkFile(content, ext);
       if (frameworkResult.isFrameworkFile) {
-        return this.findInsertLineInScript(frameworkResult.scriptContent);
+        const scriptRelativeLine = this.findInsertLineInScript(frameworkResult.scriptContent);
+        const rawScript = content.substring(frameworkResult.scriptStart, frameworkResult.scriptEnd);
+        const leadingWhitespace = rawScript.substring(0, rawScript.length - rawScript.trimStart().length);
+        const leadingNewlines = (leadingWhitespace.match(/\n/g) || []).length;
+        const scriptStartLine = content.substring(0, frameworkResult.scriptStart).split('\n').length - 1;
+        return scriptStartLine + leadingNewlines + scriptRelativeLine;
       }
     }
     return this.findInsertLineInScript(content);
@@ -123,10 +128,33 @@ export class JsTsPlugin implements LanguagePlugin {
     const lines = content.split('\n');
     let lastImportLine = -1;
     let firstCodeLine = 0;
+    let inBlockComment = false;
+    const startIndex = lines.length > 0 && lines[0].trimStart().startsWith('#!') ? 1 : 0;
 
-    for (let i = 0; i < lines.length; i++) {
+    if (startIndex === 1) {
+      firstCodeLine = 1;
+    }
+
+    for (let i = startIndex; i < lines.length; i++) {
       const trimmed = lines[i].trim();
-      if (trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('*') || trimmed === '') {
+
+      if (inBlockComment) {
+        firstCodeLine = i + 1;
+        if (trimmed.includes('*/')) {
+          inBlockComment = false;
+        }
+        continue;
+      }
+
+      if (trimmed.startsWith('/*')) {
+        firstCodeLine = i + 1;
+        if (!trimmed.includes('*/')) {
+          inBlockComment = true;
+        }
+        continue;
+      }
+
+      if (trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed === '') {
         firstCodeLine = i + 1;
         continue;
       }
