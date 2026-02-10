@@ -9,6 +9,7 @@ export { JsTsPlugin } from './plugins/jsTsPlugin.js';
 export { PythonPlugin } from './plugins/pythonPlugin.js';
 export { ElixirPlugin } from './plugins/elixirPlugin.js';
 export { GoPlugin } from './plugins/goPlugin.js';
+export { RustPlugin } from './plugins/rustPlugin.js';
 export { getPluginForExtension, getAllExtensions, getDefaultPlugins } from './plugins/index.js';
 
 export type { ScanOptions, ScannedFile } from './scanner/fileScanner.js';
