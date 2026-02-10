@@ -8,6 +8,7 @@ import type { LanguagePlugin } from '@/plugins/languagePlugin.js';
 import { getPluginForExtension, getDefaultPlugins, getAllExtensions } from '@/plugins/index.js';
 import type { ReportFormat, ReportEntry, ReportData } from '@/reporter/reportGenerator.js';
 import { writeReport } from '@/reporter/reportGenerator.js';
+import { detectProjectLanguages } from '@/detector/languageDetector.js';
 
 export interface CliOptions {
   dryRun?: boolean;
@@ -45,9 +46,20 @@ export class AutoImportCli {
 
     const projectRoot = path.resolve(directory);
 
-    const extensions = options.extensions
-      ? options.extensions.split(',').map(ext => ext.trim().startsWith('.') ? ext.trim() : '.' + ext.trim())
-      : getAllExtensions(this.plugins);
+    let extensions: string[];
+    if (options.extensions) {
+      extensions = options.extensions.split(',').map(ext => ext.trim().startsWith('.') ? ext.trim() : '.' + ext.trim());
+    } else {
+      const detected = await detectProjectLanguages(projectRoot);
+      if (detected.length > 0) {
+        extensions = detected;
+        if (options.verbose) {
+          console.log(chalk.gray(`Auto-detected extensions: ${detected.join(', ')}`));
+        }
+      } else {
+        extensions = getAllExtensions(this.plugins);
+      }
+    }
 
     console.log(chalk.yellow('Building export cache...'));
     this.resolver = new ImportResolver({
@@ -229,7 +241,7 @@ export function createCli(): Command {
     .argument('[directory]', 'Directory to scan', '.')
     .option('-d, --dry-run', 'Show what would be changed without making changes')
     .option('-v, --verbose', 'Show detailed output')
-    .option('-e, --extensions <extensions>', 'File extensions to scan (comma-separated)')
+    .option('-e, --extensions <extensions>', 'File extensions to scan (comma-separated, auto-detected if omitted)')
     .option('-i, --ignore <patterns>', 'Patterns to ignore (comma-separated)')
     .option('-c, --config <path>', 'Path to config file')
     .option('--no-alias', 'Disable tsconfig path alias resolution')

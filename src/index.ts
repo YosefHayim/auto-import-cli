@@ -3,6 +3,7 @@ export { AstParser } from './parser/astParser.js';
 export { FrameworkParser } from './parser/frameworkParser.js';
 export { ImportResolver } from './resolver/importResolver.js';
 export { AutoImportCli, createCli } from './cli/autoImportCli.js';
+export { detectProjectLanguages } from './detector/languageDetector.js';
 
 // Plugin system
 export { JsTsPlugin } from './plugins/jsTsPlugin.js';
