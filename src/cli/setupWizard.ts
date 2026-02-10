@@ -155,7 +155,7 @@ async function stepConfigAndScan(state: WizardState): Promise<StepResult> {
         dryRun: true,
         verbose: true,
         extensions: state.selectedExtensions.join(','),
-        noAlias: !state.useAliases,
+        alias: state.useAliases,
       });
       p.log.success('Scan complete');
     } catch (err) {

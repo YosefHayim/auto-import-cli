@@ -15,7 +15,7 @@ export interface CliOptions {
   config?: string;
   extensions?: string;
   ignore?: string;
-  noAlias?: boolean;
+  alias?: boolean;
   report?: string;
 }
 
@@ -53,7 +53,7 @@ export class AutoImportCli {
     this.resolver = new ImportResolver({
       projectRoot,
       extensions,
-      useAliases: !options.noAlias,
+      useAliases: options.alias !== false,
       plugins: this.plugins,
     });
     await this.resolver.buildExportCache();
@@ -250,8 +250,8 @@ export function createCli(): Command {
           if (!options.ignore && fileConfig.ignore) {
             options.ignore = fileConfig.ignore.join(',');
           }
-          if (options.noAlias === undefined && fileConfig.useAliases !== undefined) {
-            options.noAlias = !fileConfig.useAliases;
+          if (options.alias === undefined && fileConfig.useAliases !== undefined) {
+            options.alias = fileConfig.useAliases;
           }
           if (options.dryRun === undefined && fileConfig.dryRun) {
             options.dryRun = fileConfig.dryRun;

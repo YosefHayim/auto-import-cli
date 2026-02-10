@@ -88,5 +88,13 @@ describe('Plugin Registry', () => {
       expect(plugins.some(p => p instanceof JsTsPlugin)).toBe(true);
       expect(plugins.some(p => p instanceof PythonPlugin)).toBe(true);
     });
+
+    it('FIX 14: should return a new array each time (not mutable reference)', () => {
+      const plugins1 = getDefaultPlugins();
+      const plugins2 = getDefaultPlugins();
+      expect(plugins1).not.toBe(plugins2);
+      plugins1.push(new PythonPlugin());
+      expect(getDefaultPlugins()).toHaveLength(2);
+    });
   });
 });
