@@ -1,6 +1,6 @@
 {
   "name": "import-pilot",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CLI tool that scans your project and auto-fixes missing imports across JS/TS, Vue, Svelte, Astro, and Python.",
   "type": "module",
   "main": "./dist/index.js",
