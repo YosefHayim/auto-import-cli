@@ -19,7 +19,7 @@ export function MyComponent() {
 `;
 
       const result = parser.parse(content);
-      
+
       expect(result.existingImports).toHaveLength(2);
       expect(result.existingImports[0].source).toBe('react');
       expect(result.existingImports[0].imports).toContain('useState');
@@ -41,9 +41,9 @@ export function MyComponent() {
 `;
 
       const result = parser.parse(content);
-      
-      expect(result.usedIdentifiers.some(id => id.name === 'Card')).toBe(true);
-      expect(result.usedIdentifiers.some(id => id.name === 'Button')).toBe(true);
+
+      expect(result.usedIdentifiers.some((id) => id.name === 'Card')).toBe(true);
+      expect(result.usedIdentifiers.some((id) => id.name === 'Button')).toBe(true);
     });
 
     it('should detect function calls', () => {
@@ -55,8 +55,8 @@ export function MyComponent() {
 `;
 
       const result = parser.parse(content);
-      
-      expect(result.usedIdentifiers.some(id => id.name === 'formatName')).toBe(true);
+
+      expect(result.usedIdentifiers.some((id) => id.name === 'formatName')).toBe(true);
     });
 
     it('should not detect method calls as missing imports', () => {
@@ -69,7 +69,7 @@ export function MyComponent() {
 `;
 
       const result = parser.parse(content);
-      
+
       expect(result.missingImports).not.toContain('toUpperCase');
     });
 
@@ -81,7 +81,7 @@ export function MyComponent() {
 `;
 
       const result = parser.parse(content);
-      
+
       expect(result.missingImports).toContain('Card');
       expect(result.missingImports).toContain('Button');
     });
@@ -96,7 +96,7 @@ export function MyComponent() {
 `;
 
       const result = parser.parse(content);
-      
+
       expect(result.missingImports).not.toContain('Card');
     });
 
@@ -110,9 +110,39 @@ export function MyComponent() {
 `;
 
       const result = parser.parse(content);
-      
+
       expect(result.existingImports[0].isNamespace).toBe(true);
       expect(result.existingImports[0].imports).toContain('React');
+    });
+  });
+
+  describe('FIX 5b: isKeyword should only suppress Vue compiler macros', () => {
+    it('should treat framework symbols as importable (not keywords)', () => {
+      const result = parser.parse(`
+const svc = Injectable({ providedIn: 'root' });
+const router = Router();
+`);
+      expect(result.missingImports).not.toContain('defineProps');
+      expect(result.missingImports).not.toContain('defineEmits');
+    });
+
+    it('should not suppress Angular/React/Next.js symbols', () => {
+      const isKeyword = (parser as any).isKeyword.bind(parser);
+      expect(isKeyword('Injectable')).toBe(false);
+      expect(isKeyword('Observable')).toBe(false);
+      expect(isKeyword('Router')).toBe(false);
+      expect(isKeyword('Component')).toBe(false);
+      expect(isKeyword('GetServerSideProps')).toBe(false);
+      expect(isKeyword('SvelteComponent')).toBe(false);
+    });
+
+    it('should still suppress Vue compiler macros', () => {
+      const isKeyword = (parser as any).isKeyword.bind(parser);
+      expect(isKeyword('defineProps')).toBe(true);
+      expect(isKeyword('defineEmits')).toBe(true);
+      expect(isKeyword('defineExpose')).toBe(true);
+      expect(isKeyword('defineSlots')).toBe(true);
+      expect(isKeyword('withDefaults')).toBe(true);
     });
   });
 });

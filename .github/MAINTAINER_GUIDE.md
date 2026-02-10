@@ -1,6 +1,6 @@
 # Maintainer Guide
 
-This guide helps maintainers manage the auto-import-cli project.
+This guide helps maintainers manage the import-pilot project.
 
 ## Table of Contents
 

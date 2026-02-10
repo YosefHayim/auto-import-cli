@@ -1,5 +1,5 @@
 name: ❓ Question
-description: Ask a question about using auto-import-cli
+description: Ask a question about using import-pilot
 title: "[Question]: "
 labels: ["question"]
 body:

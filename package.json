@@ -1,29 +1,35 @@
 {
-  "name": "auto-import-cli",
+  "name": "import-pilot",
   "version": "1.0.0",
-  "description": "Open source CLI tool that automatically scans each file in your project and imports missing imports of Components, functions, etc.",
+  "description": "CLI tool that scans your project and auto-fixes missing imports across JS/TS, Vue, Svelte, Astro, and Python.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "auto-import": "./bin/auto-import.js"
+    "import-pilot": "./bin/import-pilot.js"
   },
   "scripts": {
     "build": "tsc && tsc-alias",
     "dev": "tsc --watch",
-    "start": "node bin/auto-import.js",
+    "start": "node bin/import-pilot.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "prepublishOnly": "npm run build"
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write src/",
+    "format:check": "prettier --check src/",
+    "prepublishOnly": "npm run build",
+    "prepare": "husky"
   },
   "keywords": [
     "import",
     "auto-import",
+    "import-pilot",
     "cli",
     "typescript",
     "javascript",
-    "ast",
+    "python",
     "code-quality"
   ],
   "author": "Yosef Hayim Sabag",
@@ -33,6 +39,7 @@
     "url": "https://github.com/YosefHayim/auto-import-cli"
   },
   "dependencies": {
+    "@clack/prompts": "^1.0.0",
     "@types/node": "^25.2.2",
     "chalk": "^5.6.2",
     "commander": "^14.0.3",
@@ -40,12 +47,29 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@types/jest": "^29.5.14",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
     "jest": "^29.7.0",
+    "jest-util": "^29.7.0",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.8.1",
     "ts-jest": "^29.2.5",
-    "tsc-alias": "^1.8.16"
+    "tsc-alias": "^1.8.16",
+    "typescript-eslint": "^8.55.0"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
   }
 }

@@ -57,7 +57,7 @@ jobs:
             ## Installation
             
             ```bash
-            npm install -g auto-import-cli@${{ steps.version.outputs.VERSION }}
+            npm install -g import-pilot@${{ steps.version.outputs.VERSION }}
             ```
           draft: false
           prerelease: false

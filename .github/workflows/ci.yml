@@ -78,13 +78,13 @@ jobs:
       
       - name: Verify bin entry point
         run: |
-          if [ ! -f "bin/auto-import.js" ]; then
-            echo "Error: bin/auto-import.js not found"
+          if [ ! -f "bin/import-pilot.js" ]; then
+            echo "Error: bin/import-pilot.js not found"
             exit 1
           fi
       
       - name: Test CLI runs
-        run: node bin/auto-import.js --help
+        run: node bin/import-pilot.js --help
 
   edge-cases:
     name: Edge Case Testing
@@ -109,13 +109,13 @@ jobs:
       - name: Test empty directory
         run: |
           mkdir -p /tmp/empty-test
-          node bin/auto-import.js /tmp/empty-test --dry-run
+          node bin/import-pilot.js /tmp/empty-test --dry-run
       
       - name: Test with verbose flag
-        run: node bin/auto-import.js tests/sample-project --dry-run --verbose
+        run: node bin/import-pilot.js tests/sample-project --dry-run --verbose
       
       - name: Test with custom extensions
-        run: node bin/auto-import.js tests/sample-project --dry-run --extensions .ts,.tsx
+        run: node bin/import-pilot.js tests/sample-project --dry-run --extensions .ts,.tsx
       
       - name: Test framework files
-        run: node bin/auto-import.js tests/framework-samples --dry-run --verbose || true
+        run: node bin/import-pilot.js tests/framework-samples --dry-run --verbose || true

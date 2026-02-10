@@ -15,7 +15,7 @@ export interface ScannedFile {
 }
 
 export class FileScanner {
-  private defaultExtensions = ['.ts', '.tsx', '.js', '.jsx', '.vue', '.svelte', '.astro'];
+  private defaultExtensions = ['.ts', '.tsx', '.js', '.jsx', '.vue', '.svelte', '.astro', '.py'];
   private defaultIgnore = [
     '**/node_modules/**',
     '**/dist/**',
@@ -23,6 +23,9 @@ export class FileScanner {
     '**/.next/**',
     '**/.git/**',
     '**/coverage/**',
+    '**/__pycache__/**',
+    '**/.venv/**',
+    '**/venv/**',
   ];
 
   async scan(options: ScanOptions = {}): Promise<ScannedFile[]> {
@@ -31,9 +34,7 @@ export class FileScanner {
     const cwd = options.cwd || process.cwd();
 
     // Create glob pattern for all extensions
-    const pattern = extensions.length === 1 
-      ? `**/*${extensions[0]}`
-      : `**/*{${extensions.join(',')}}`;
+    const pattern = extensions.length === 1 ? `**/*${extensions[0]}` : `**/*{${extensions.join(',')}}`;
 
     // Find all matching files
     const files = await glob(pattern, {

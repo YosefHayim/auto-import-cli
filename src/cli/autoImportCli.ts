@@ -3,9 +3,13 @@ import chalk from 'chalk';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { FileScanner } from '@/scanner/fileScanner.js';
-import { AstParser } from '@/parser/astParser.js';
 import { ImportResolver } from '@/resolver/importResolver.js';
-import { FrameworkParser } from '@/parser/frameworkParser.js';
+import type { LanguagePlugin } from '@/plugins/languagePlugin.js';
+import { getPluginForExtension, getDefaultPlugins, getAllExtensions } from '@/plugins/index.js';
+import type { ReportFormat, ReportEntry, ReportData } from '@/reporter/reportGenerator.js';
+import { writeReport } from '@/reporter/reportGenerator.js';
+import { detectProjectLanguages } from '@/detector/languageDetector.js';
+import { sortImports } from '@/sorter/importSorter.js';
 
 export interface CliOptions {
   dryRun?: boolean;
@@ -13,6 +17,10 @@ export interface CliOptions {
   config?: string;
   extensions?: string;
   ignore?: string;
+  alias?: boolean;
+  report?: string;
+  sort?: boolean;
+  sortOrder?: string;
 }
 
 export interface MissingImport {
@@ -26,38 +34,48 @@ export interface MissingImport {
 
 export class AutoImportCli {
   private scanner: FileScanner;
-  private parser: AstParser;
-  private frameworkParser: FrameworkParser;
+  private plugins: LanguagePlugin[];
   private resolver?: ImportResolver;
 
-  constructor() {
+  constructor(plugins?: LanguagePlugin[]) {
     this.scanner = new FileScanner();
-    this.parser = new AstParser();
-    this.frameworkParser = new FrameworkParser();
+    this.plugins = plugins ?? getDefaultPlugins();
   }
 
   async run(directory: string, options: CliOptions = {}): Promise<void> {
-    console.log(chalk.blue('🔍 Auto Import CLI'));
+    const startTime = Date.now();
+    console.log(chalk.blue('🔍 Import Pilot'));
     console.log(chalk.gray(`Scanning directory: ${directory}\n`));
 
     const projectRoot = path.resolve(directory);
 
-    // Initialize resolver and build export cache
+    let extensions: string[];
+    if (options.extensions) {
+      extensions = options.extensions.split(',').map((ext) => (ext.trim().startsWith('.') ? ext.trim() : '.' + ext.trim()));
+    } else {
+      const detected = await detectProjectLanguages(projectRoot);
+      if (detected.length > 0) {
+        extensions = detected;
+        if (options.verbose) {
+          console.log(chalk.gray(`Auto-detected extensions: ${detected.join(', ')}`));
+        }
+      } else {
+        extensions = getAllExtensions(this.plugins);
+      }
+    }
+
     console.log(chalk.yellow('Building export cache...'));
-    this.resolver = new ImportResolver({ projectRoot });
+    this.resolver = new ImportResolver({
+      projectRoot,
+      extensions,
+      useAliases: options.alias !== false,
+      plugins: this.plugins,
+    });
     await this.resolver.buildExportCache();
     console.log(chalk.green('✓ Export cache built\n'));
 
-    // Parse extensions and ignore patterns
-    const extensions = options.extensions 
-      ? options.extensions.split(',').map(ext => ext.trim().startsWith('.') ? ext.trim() : '.' + ext.trim())
-      : undefined;
-    
-    const ignore = options.ignore 
-      ? options.ignore.split(',').map(pattern => pattern.trim())
-      : undefined;
+    const ignore = options.ignore ? options.ignore.split(',').map((pattern) => pattern.trim()) : undefined;
 
-    // Scan files
     const files = await this.scanner.scan({
       cwd: projectRoot,
       extensions,
@@ -66,53 +84,75 @@ export class AutoImportCli {
 
     console.log(chalk.gray(`Found ${files.length} files to analyze\n`));
 
-    // Analyze each file
     const allMissingImports: MissingImport[] = [];
+    const reportEntries: ReportEntry[] = [];
     let filesWithIssues = 0;
 
     for (const file of files) {
-      // Handle framework-specific files (Vue, Svelte, Astro)
-      const frameworkResult = this.frameworkParser.parseFrameworkFile(file.content, file.ext);
-      const contentToParse = frameworkResult.isFrameworkFile 
-        ? frameworkResult.scriptContent 
-        : file.content;
-      
-      const parseResult = this.parser.parse(contentToParse);
-      
-      if (parseResult.missingImports.length > 0) {
+      const plugin = getPluginForExtension(file.ext, this.plugins);
+      if (!plugin) continue;
+
+      const existingImports = plugin.parseImports(file.content, file.path);
+      const usedIdentifiers = plugin.findUsedIdentifiers(file.content, file.path);
+
+      const importedNames = new Set<string>();
+      existingImports.forEach((imp) => {
+        imp.imports.forEach((name) => {
+          importedNames.add(name);
+        });
+      });
+
+      const missingIdentifiers = usedIdentifiers
+        .map((id) => id.name)
+        .filter((name, idx, self) => self.indexOf(name) === idx)
+        .filter((name) => !importedNames.has(name))
+        .filter((name) => !plugin.isBuiltInOrKeyword(name));
+
+      if (missingIdentifiers.length > 0) {
         filesWithIssues++;
-        
+
         if (options.verbose) {
           console.log(chalk.yellow(`\n📄 ${path.relative(projectRoot, file.path)}`));
-          if (frameworkResult.isFrameworkFile) {
-            console.log(chalk.gray(`   (${frameworkResult.framework} component)`));
-          }
+          console.log(chalk.gray(`   (${plugin.name})`));
         }
 
-        for (const identifier of parseResult.missingImports) {
+        for (const identifier of missingIdentifiers) {
           const resolution = this.resolver!.resolveImport(identifier, file.path);
-          
-          const missingImport: MissingImport = {
-            identifier,
-            file: file.path,
-          };
+
+          const missingImport: MissingImport = { identifier, file: file.path };
+          const relFile = path.relative(projectRoot, file.path);
 
           if (resolution) {
             missingImport.suggestion = {
               source: resolution.source,
               isDefault: resolution.isDefault,
             };
-            
+
+            const stmt = plugin.generateImportStatement(identifier, resolution.source, resolution.isDefault);
+
             if (options.verbose) {
-              console.log(
-                chalk.gray(`  - ${identifier}`) +
-                chalk.green(` → import ${resolution.isDefault ? identifier : `{ ${identifier} }`} from '${resolution.source}'`)
-              );
+              console.log(chalk.gray(`  - ${identifier}`) + chalk.green(` → ${stmt}`));
             }
+
+            reportEntries.push({
+              file: relFile,
+              identifier,
+              importStatement: stmt,
+              source: resolution.source,
+              isDefault: resolution.isDefault,
+            });
           } else {
             if (options.verbose) {
               console.log(chalk.gray(`  - ${identifier}`) + chalk.red(' → not found in project'));
             }
+
+            reportEntries.push({
+              file: relFile,
+              identifier,
+              importStatement: null,
+              source: null,
+              isDefault: false,
+            });
           }
 
           allMissingImports.push(missingImport);
@@ -120,30 +160,51 @@ export class AutoImportCli {
       }
     }
 
-    // Summary
+    const resolvable = allMissingImports.filter((m) => m.suggestion).length;
+
     console.log(chalk.blue('\n\n📊 Summary:'));
     console.log(chalk.gray(`  Total files scanned: ${files.length}`));
     console.log(chalk.gray(`  Files with missing imports: ${filesWithIssues}`));
     console.log(chalk.gray(`  Total missing imports: ${allMissingImports.length}`));
-    console.log(chalk.gray(`  Resolvable imports: ${allMissingImports.filter(m => m.suggestion).length}`));
+    console.log(chalk.gray(`  Resolvable imports: ${resolvable}`));
 
     if (options.dryRun) {
       console.log(chalk.yellow('\n⚠️  Dry run mode - no files were modified'));
     } else {
-      // Apply fixes
-      const fixable = allMissingImports.filter(m => m.suggestion);
+      const fixable = allMissingImports.filter((m) => m.suggestion);
       if (fixable.length > 0) {
         console.log(chalk.blue(`\n✨ Applying ${fixable.length} fixes...`));
-        await this.applyFixes(fixable);
+        await this.applyFixes(fixable, options.sort !== false);
         console.log(chalk.green('✓ Fixes applied successfully'));
       } else {
         console.log(chalk.yellow('\n⚠️  No resolvable imports found'));
       }
     }
+
+    const reportFormat = (options.report || 'none') as ReportFormat;
+    if (reportFormat !== 'none') {
+      const durationMs = Date.now() - startTime;
+      const reportData: ReportData = {
+        timestamp: new Date().toISOString(),
+        durationMs,
+        directory: projectRoot,
+        totalFilesScanned: files.length,
+        filesWithMissing: filesWithIssues,
+        totalMissing: allMissingImports.length,
+        totalResolved: resolvable,
+        totalUnresolved: allMissingImports.length - resolvable,
+        dryRun: !!options.dryRun,
+        entries: reportEntries,
+      };
+
+      const reportPath = await writeReport(projectRoot, reportFormat, reportData);
+      if (reportPath) {
+        console.log(chalk.green(`\n📝 Report written to ${chalk.cyan(path.relative(projectRoot, reportPath))}`));
+      }
+    }
   }
 
-  private async applyFixes(missingImports: MissingImport[]): Promise<void> {
-    // Group by file
+  private async applyFixes(missingImports: MissingImport[], enableSort: boolean): Promise<void> {
     const fileMap = new Map<string, MissingImport[]>();
     for (const item of missingImports) {
       if (!fileMap.has(item.file)) {
@@ -152,66 +213,25 @@ export class AutoImportCli {
       fileMap.get(item.file)!.push(item);
     }
 
-    // Apply fixes to each file
     for (const [filePath, imports] of fileMap.entries()) {
-      let content = await fs.readFile(filePath, 'utf-8');
+      const content = await fs.readFile(filePath, 'utf-8');
       const ext = path.extname(filePath);
-      
-      // Check if this is a framework file
-      const frameworkResult = this.frameworkParser.parseFrameworkFile(content, ext);
-      
-      // Generate import statements
+      const plugin = getPluginForExtension(ext, this.plugins);
+      if (!plugin) continue;
+
       const newImports: string[] = [];
       for (const item of imports) {
         if (item.suggestion) {
-          const importStatement = item.suggestion.isDefault
-            ? `import ${item.identifier} from '${item.suggestion.source}';`
-            : `import { ${item.identifier} } from '${item.suggestion.source}';`;
-          
-          newImports.push(importStatement);
+          newImports.push(
+            plugin.generateImportStatement(item.identifier, item.suggestion.source, item.suggestion.isDefault),
+          );
         }
       }
 
       if (newImports.length === 0) continue;
 
-      let newContent: string;
-
-      if (frameworkResult.isFrameworkFile) {
-        // For framework files, use the framework parser to insert imports
-        newContent = this.frameworkParser.insertImportsIntoFramework(
-          content,
-          newImports,
-          frameworkResult
-        );
-      } else {
-        // For regular JS/TS files, use the original method
-        const lines = content.split('\n');
-        let lastImportLine = -1;
-        let firstCodeLine = 0;
-        
-        // Skip file-level comments and find first import or code
-        for (let i = 0; i < lines.length; i++) {
-          const trimmedLine = lines[i].trim();
-          if (trimmedLine.startsWith('//') || 
-              trimmedLine.startsWith('/*') || 
-              trimmedLine.startsWith('*') ||
-              trimmedLine === '') {
-            firstCodeLine = i + 1;
-            continue;
-          }
-          if (trimmedLine.startsWith('import ')) {
-            lastImportLine = i;
-          } else if (trimmedLine.length > 0 && lastImportLine === -1) {
-            // Found code without imports
-            break;
-          }
-        }
-
-        const insertIndex = lastImportLine >= 0 ? lastImportLine + 1 : firstCodeLine;
-        lines.splice(insertIndex, 0, ...newImports);
-        newContent = lines.join('\n');
-      }
-
+      const sortedImports = enableSort ? sortImports(newImports, 'js') : newImports;
+      const newContent = plugin.insertImports(content, sortedImports, filePath);
       await fs.writeFile(filePath, newContent, 'utf-8');
     }
   }
@@ -221,19 +241,74 @@ export function createCli(): Command {
   const program = new Command();
 
   program
-    .name('auto-import')
+    .name('import-pilot')
     .description('Automatically scan and fix missing imports in your project')
     .version('1.0.0')
     .argument('[directory]', 'Directory to scan', '.')
     .option('-d, --dry-run', 'Show what would be changed without making changes')
     .option('-v, --verbose', 'Show detailed output')
-    .option('-e, --extensions <extensions>', 'File extensions to scan (comma-separated)', '.ts,.tsx,.js,.jsx,.vue,.svelte,.astro')
+    .option('-e, --extensions <extensions>', 'File extensions to scan (comma-separated, auto-detected if omitted)')
     .option('-i, --ignore <patterns>', 'Patterns to ignore (comma-separated)')
     .option('-c, --config <path>', 'Path to config file')
+    .option('--no-alias', 'Disable tsconfig path alias resolution')
+    .option('-r, --report <format>', 'Report format: md, json, txt, or none', 'none')
+    .option('-s, --sort', 'Sort and group imports (default: true)', true)
+    .option('--no-sort', 'Disable import sorting and grouping')
+    .option('--sort-order <order>', 'Import sort order: builtin,external,alias,relative', 'builtin,external,alias,relative')
     .action(async (directory: string, options: CliOptions) => {
       try {
+        const configPath = path.resolve(directory, options.config || '.import-pilot.json');
+        let fileConfig: Record<string, any> | null = null;
+        try {
+          const raw = await fs.readFile(configPath, 'utf-8');
+          fileConfig = JSON.parse(raw);
+        } catch {
+          /* no config file */
+        }
+
+        if (fileConfig) {
+          if (!options.extensions && fileConfig.extensions) {
+            options.extensions = fileConfig.extensions.join(',');
+          }
+          if (!options.ignore && fileConfig.ignore) {
+            options.ignore = fileConfig.ignore.join(',');
+          }
+          if (options.alias === undefined && fileConfig.useAliases !== undefined) {
+            options.alias = fileConfig.useAliases;
+          }
+          if (options.dryRun === undefined && fileConfig.dryRun) {
+            options.dryRun = fileConfig.dryRun;
+          }
+          if (options.verbose === undefined && fileConfig.verbose) {
+            options.verbose = fileConfig.verbose;
+          }
+          if (options.report === 'none' && fileConfig.report && fileConfig.report !== 'none') {
+            options.report = fileConfig.report;
+          }
+          if (options.sort === undefined && fileConfig.sort !== undefined) {
+            options.sort = fileConfig.sort;
+          }
+          if (!options.sortOrder && fileConfig.sortOrder) {
+            options.sortOrder = fileConfig.sortOrder;
+          }
+        }
+
         const cli = new AutoImportCli();
         await cli.run(directory, options);
+      } catch (error) {
+        console.error(chalk.red('\n❌ Error:'), error);
+        process.exit(1);
+      }
+    });
+
+  program
+    .command('init')
+    .description('Interactive setup wizard — configure import-pilot for your project')
+    .argument('[directory]', 'Project directory', '.')
+    .action(async (directory: string) => {
+      try {
+        const { runSetupWizard } = await import('./setupWizard.js');
+        await runSetupWizard(path.resolve(directory));
       } catch (error) {
         console.error(chalk.red('\n❌ Error:'), error);
         process.exit(1);
