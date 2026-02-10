@@ -68,10 +68,11 @@ describe('GoPlugin', () => {
   });
 
   describe('findUsedIdentifiers', () => {
-    it('should detect package-qualified calls', () => {
+    it('should detect package-qualified calls with both pkg and symbol', () => {
       const content = `package main\n\nfunc main() {\n\tcustom.DoSomething()\n}`;
       const ids = plugin.findUsedIdentifiers(content, 'main.go');
       expect(ids.some(id => id.name === 'custom')).toBe(true);
+      expect(ids.some(id => id.name === 'DoSomething')).toBe(true);
     });
 
     it('should detect PascalCase identifiers', () => {
@@ -123,10 +124,11 @@ describe('GoPlugin', () => {
       expect(ids.some(id => id.name === 'CustomService')).toBe(false);
     });
 
-    it('should not detect method calls after dot as standalone identifiers', () => {
+    it('should capture symbol from package-qualified call', () => {
       const content = `package main\n\nfunc main() {\n\tresult := obj.Process()\n}`;
       const ids = plugin.findUsedIdentifiers(content, 'main.go');
-      expect(ids.some(id => id.name === 'Process')).toBe(false);
+      expect(ids.some(id => id.name === 'obj')).toBe(true);
+      expect(ids.some(id => id.name === 'Process')).toBe(true);
     });
   });
 
@@ -144,10 +146,11 @@ describe('GoPlugin', () => {
       expect(exports).toHaveLength(0);
     });
 
-    it('should detect exported methods', () => {
+    it('should not detect exported methods (methods cannot be imported directly)', () => {
       const content = `package models\n\nfunc (u *User) Validate() error { return nil }\n\nfunc (u *User) String() string { return u.Name }`;
       const exports = plugin.parseExports(content, '/project/models.go');
-      expect(exports.some(e => e.name === 'Validate')).toBe(true);
+      expect(exports.some(e => e.name === 'Validate')).toBe(false);
+      expect(exports.some(e => e.name === 'String')).toBe(false);
     });
 
     it('should not detect unexported methods', () => {
@@ -279,14 +282,14 @@ describe('GoPlugin', () => {
       expect(stmt).toBe('import "github.com/myorg/myapp/handlers"');
     });
 
-    it('should generate import for file path with src', () => {
+    it('should generate import for file path with src (directory-based)', () => {
       const stmt = plugin.generateImportStatement('User', '/project/src/models/user.go', false);
-      expect(stmt).toBe('import "models/user"');
+      expect(stmt).toBe('import "models"');
     });
 
-    it('should generate import for file path without src', () => {
+    it('should generate import for file path without src (directory-based)', () => {
       const stmt = plugin.generateImportStatement('Config', '/project/pkg/config.go', false);
-      expect(stmt).toBe('import "pkg/config"');
+      expect(stmt).toBe('import "project/pkg"');
     });
   });
 
@@ -318,6 +321,18 @@ describe('GoPlugin', () => {
     it('should handle empty file', () => {
       const pos = plugin.getImportInsertPosition('', 'main.go');
       expect(pos).toBe(0);
+    });
+
+    it('should skip block comments with body lines', () => {
+      const content = `/*\n * Package main provides the entry point.\n * It does important things.\n */\npackage main\n\nimport "fmt"\n\nfunc main() {}`;
+      const pos = plugin.getImportInsertPosition(content, 'main.go');
+      expect(pos).toBe(7);
+    });
+
+    it('should handle block comment between package and imports', () => {
+      const content = `package main\n\n/*\nThis is a block comment\nwith multiple lines\n*/\n\nimport "fmt"\n\nfunc main() {}`;
+      const pos = plugin.getImportInsertPosition(content, 'main.go');
+      expect(pos).toBe(8);
     });
   });
 
@@ -373,17 +388,18 @@ describe('GoPlugin', () => {
       expect(filePathToPackage('github.com/myorg/myapp/handlers')).toBe('github.com/myorg/myapp/handlers');
     });
 
-    it('should convert src-relative paths', () => {
-      expect(filePathToPackage('/project/src/models/user.go')).toBe('models/user');
+    it('should convert src-relative paths (directory-based)', () => {
+      expect(filePathToPackage('/project/src/models/user.go')).toBe('models');
     });
 
-    it('should strip .go extension', () => {
+    it('should strip .go filename and return directory', () => {
       const result = filePathToPackage('/project/src/handlers.go');
       expect(result).not.toContain('.go');
+      expect(result).not.toContain('handlers');
     });
 
-    it('should fall back to last two segments', () => {
-      expect(filePathToPackage('/project/pkg/config.go')).toBe('pkg/config');
+    it('should fall back to last two segments (directory-based)', () => {
+      expect(filePathToPackage('/project/pkg/config.go')).toBe('project/pkg');
     });
   });
 });

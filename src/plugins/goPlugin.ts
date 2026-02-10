@@ -52,13 +52,15 @@ export class GoPlugin implements LanguagePlugin {
         continue;
       }
 
-      // pkg.Identifier — package-qualified access
+      // pkg.Identifier — package-qualified access (push both pkg name and symbol)
       const pkgCallRegex = /(?<![.\w])([a-z][a-zA-Z0-9]*)\.\s*([A-Z][a-zA-Z0-9]*)/g;
       let match;
       while ((match = pkgCallRegex.exec(line)) !== null) {
         const pkgName = match[1];
+        const symbolName = match[2];
         if (!this.isBuiltInOrKeyword(pkgName)) {
           identifiers.push({ name: pkgName, line: lineIndex + 1, column: match.index });
+          identifiers.push({ name: symbolName, line: lineIndex + 1, column: match.index + pkgName.length + 1 });
         }
       }
 
@@ -84,12 +86,6 @@ export class GoPlugin implements LanguagePlugin {
     // func FunctionName(
     const funcRegex = /^func\s+([A-Z][a-zA-Z0-9]*)\s*\(/gm;
     while ((match = funcRegex.exec(stripped)) !== null) {
-      exports.push({ name: match[1], source: filePath, isDefault: false });
-    }
-
-    // func (receiver) MethodName(
-    const methodRegex = /^func\s+\([^)]*\)\s+([A-Z][a-zA-Z0-9]*)\s*\(/gm;
-    while ((match = methodRegex.exec(stripped)) !== null) {
       exports.push({ name: match[1], source: filePath, isDefault: false });
     }
 
@@ -151,12 +147,26 @@ export class GoPlugin implements LanguagePlugin {
     let lastImportLine = -1;
     let afterPackage = 0;
     let inImportBlock = false;
+    let inBlockComment = false;
 
     for (let i = 0; i < lines.length; i++) {
       const trimmed = lines[i].trim();
 
-      if (trimmed.startsWith('//') || trimmed.startsWith('/*') ||
-          trimmed.startsWith('*') || trimmed === '') {
+      if (inBlockComment) {
+        if (trimmed.includes('*/')) {
+          inBlockComment = false;
+        }
+        continue;
+      }
+
+      if (trimmed.startsWith('/*')) {
+        if (!trimmed.includes('*/')) {
+          inBlockComment = true;
+        }
+        continue;
+      }
+
+      if (trimmed.startsWith('//') || trimmed === '') {
         continue;
       }
 
@@ -215,8 +225,13 @@ export class GoPlugin implements LanguagePlugin {
   }
 
   private filePathToPackage(filePath: string): string {
-    let pkgPath = filePath.replace(/\.go$/, '');
-    pkgPath = pkgPath.replace(/\\/g, '/');
+    let pkgPath = filePath.replace(/\\/g, '/');
+
+    // Strip .go filename to get directory (Go imports are package/directory based)
+    if (pkgPath.endsWith('.go')) {
+      const lastSlash = pkgPath.lastIndexOf('/');
+      pkgPath = lastSlash >= 0 ? pkgPath.substring(0, lastSlash) : pkgPath.replace(/\.go$/, '');
+    }
 
     if (!pkgPath.startsWith('/') && !pkgPath.startsWith('.')) {
       return pkgPath;

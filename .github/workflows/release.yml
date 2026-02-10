@@ -34,7 +34,7 @@ jobs:
         id: pr_info
         run: |
           # Get the most recent merged PR that matches this commit
-          PR_DATA=$(gh pr list --state merged --limit 1 --json number,labels,title --jq '.[0]')
+          PR_DATA=$(gh pr list --state merged --limit 1 --json number,labels,mergeCommit --jq '.[0] | select(.mergeCommit.oid == "${{ github.sha }}")')
           
           if [ -z "$PR_DATA" ] || [ "$PR_DATA" = "null" ]; then
             echo "No merged PR found, skipping release"
@@ -100,6 +100,11 @@ jobs:
         run: |
           git add package.json package-lock.json
           git commit -m "chore: bump version to ${{ steps.new_version.outputs.new_version }}"
+      
+      - name: Push version bump to main
+        if: steps.new_version.outputs.new_version != ''
+        run: |
+          git push origin main
       
       - name: Create and push git tag
         if: steps.new_version.outputs.new_version != ''

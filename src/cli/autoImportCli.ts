@@ -176,7 +176,7 @@ export class AutoImportCli {
       const fixable = allMissingImports.filter((m) => m.suggestion);
       if (fixable.length > 0) {
         console.log(chalk.blue(`\n✨ Applying ${fixable.length} fixes...`));
-        await this.applyFixes(fixable, options.sort !== false);
+        await this.applyFixes(fixable, options.sort !== false, options.sortOrder);
         console.log(chalk.green('✓ Fixes applied successfully'));
       } else {
         console.log(chalk.yellow('\n⚠️  No resolvable imports found'));
@@ -218,7 +218,7 @@ export class AutoImportCli {
     return 'js';
   }
 
-  private async applyFixes(missingImports: MissingImport[], enableSort: boolean): Promise<void> {
+  private async applyFixes(missingImports: MissingImport[], enableSort: boolean, sortOrder?: string): Promise<void> {
     const fileMap = new Map<string, MissingImport[]>();
     for (const item of missingImports) {
       if (!fileMap.has(item.file)) {
@@ -245,7 +245,7 @@ export class AutoImportCli {
       if (newImports.length === 0) continue;
 
       const lang = this.getLanguageForExt(ext);
-      const sortedImports = enableSort ? sortImports(newImports, lang) : newImports;
+      const sortedImports = enableSort ? sortImports(newImports, lang, sortOrder) : newImports;
       const newContent = plugin.insertImports(content, sortedImports, filePath);
       await fs.writeFile(filePath, newContent, 'utf-8');
     }

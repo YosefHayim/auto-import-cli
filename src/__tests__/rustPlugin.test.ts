@@ -208,6 +208,51 @@ let s: &str = "hello";`;
       const ids = plugin.findUsedIdentifiers(content, 'test.rs');
       expect(ids.some(id => id.name === 'process_data')).toBe(false);
     });
+
+    it('should detect trait name used in impl trait for struct (#35)', () => {
+      const content = `impl Serialize for MyStruct {
+    fn serialize(&self) {}
+}`;
+      const ids = plugin.findUsedIdentifiers(content, 'test.rs');
+      expect(ids.some(id => id.name === 'Serialize')).toBe(true);
+      expect(ids.some(id => id.name === 'MyStruct')).toBe(true);
+    });
+
+    it('should detect trait in generic impl (#35)', () => {
+      const content = `impl<T> Deserialize<T> for Config {
+    fn deserialize() -> T { todo!() }
+}`;
+      const ids = plugin.findUsedIdentifiers(content, 'test.rs');
+      expect(ids.some(id => id.name === 'Deserialize')).toBe(true);
+      expect(ids.some(id => id.name === 'Config')).toBe(true);
+    });
+
+    it('should detect lowercase module qualified paths (#41)', () => {
+      const content = `let data = fs::read("file.txt").unwrap();
+let addr = net::SocketAddr::new();`;
+      const ids = plugin.findUsedIdentifiers(content, 'test.rs');
+      expect(ids.some(id => id.name === 'fs')).toBe(true);
+      expect(ids.some(id => id.name === 'net')).toBe(true);
+    });
+
+    it('should not detect keyword-prefixed qualified paths (#41)', () => {
+      const content = `let x = self::helper();
+let y = super::parent_fn();
+let z = crate::root_fn();`;
+      const ids = plugin.findUsedIdentifiers(content, 'test.rs');
+      expect(ids.some(id => id.name === 'self')).toBe(false);
+      expect(ids.some(id => id.name === 'super')).toBe(false);
+      expect(ids.some(id => id.name === 'crate')).toBe(false);
+    });
+
+    it('should not detect identifiers inside strings after stripping (#36)', () => {
+      const content = `let s = r##"use fake::Import; MyStruct"##;
+let x = CustomType::new();`;
+      const ids = plugin.findUsedIdentifiers(content, 'test.rs');
+      expect(ids.some(id => id.name === 'Import')).toBe(false);
+      expect(ids.some(id => id.name === 'MyStruct')).toBe(false);
+      expect(ids.some(id => id.name === 'CustomType')).toBe(true);
+    });
   });
 
   describe('parseExports', () => {
@@ -293,6 +338,46 @@ let s: &str = "hello";`;
 }`;
       const exports = plugin.parseExports(content, '/project/src/auth.rs');
       expect(exports.some(e => e.name === 'validate_token')).toBe(true);
+    });
+
+    it('should detect pub unsafe fn (#40)', () => {
+      const content = `pub unsafe fn dangerous_op(ptr: *mut u8) {}`;
+      const exports = plugin.parseExports(content, '/project/src/ffi.rs');
+      expect(exports.some(e => e.name === 'dangerous_op')).toBe(true);
+    });
+
+    it('should detect pub const fn (#40)', () => {
+      const content = `pub const fn max_value() -> u32 { u32::MAX }`;
+      const exports = plugin.parseExports(content, '/project/src/constants.rs');
+      expect(exports.some(e => e.name === 'max_value')).toBe(true);
+    });
+
+    it('should detect pub extern "C" fn (#40)', () => {
+      const content = `pub extern "C" fn ffi_init(ctx: *mut Context) -> i32 { 0 }`;
+      const exports = plugin.parseExports(content, '/project/src/ffi.rs');
+      expect(exports.some(e => e.name === 'ffi_init')).toBe(true);
+    });
+
+    it('should detect pub unsafe extern "C" fn (#40)', () => {
+      const content = `pub unsafe extern "C" fn raw_alloc(size: usize) -> *mut u8 { std::ptr::null_mut() }`;
+      const exports = plugin.parseExports(content, '/project/src/alloc.rs');
+      expect(exports.some(e => e.name === 'raw_alloc')).toBe(true);
+    });
+
+    it('should detect pub use re-exports (#42)', () => {
+      const content = `pub use crate::models::User;
+pub use crate::services::AuthService;`;
+      const exports = plugin.parseExports(content, '/project/src/lib.rs');
+      expect(exports.some(e => e.name === 'User')).toBe(true);
+      expect(exports.some(e => e.name === 'AuthService')).toBe(true);
+    });
+
+    it('should detect pub use re-exports with braces (#42)', () => {
+      const content = `pub use crate::models::{User, Role, Permission};`;
+      const exports = plugin.parseExports(content, '/project/src/lib.rs');
+      expect(exports.some(e => e.name === 'User')).toBe(true);
+      expect(exports.some(e => e.name === 'Role')).toBe(true);
+      expect(exports.some(e => e.name === 'Permission')).toBe(true);
     });
 
     it('should not detect private items (no pub)', () => {
@@ -500,6 +585,50 @@ fn main() {}`;
     it('should strip .rs extension', () => {
       const result = filePathToModule('/project/src/module.rs');
       expect(result).not.toContain('.rs');
+    });
+  });
+
+  describe('stripCommentsAndStrings (private)', () => {
+    const strip = (plugin as any).stripCommentsAndStrings.bind(plugin);
+
+    it('should strip regular strings', () => {
+      const result = strip('let s = "hello world";');
+      expect(result).not.toContain('hello world');
+      expect(result).toContain('""');
+    });
+
+    it('should strip raw strings with matched hashes (#36)', () => {
+      const result = strip('let s = r##"contains "quotes" and #hash"##;');
+      expect(result).not.toContain('contains');
+      expect(result).not.toContain('quotes');
+      expect(result).toContain('""');
+    });
+
+    it('should strip raw strings with single hash (#36)', () => {
+      const result = strip('let s = r#"raw string content"#;');
+      expect(result).not.toContain('raw string content');
+    });
+
+    it('should strip raw strings with no hashes (#36)', () => {
+      const result = strip('let s = r"raw no hash";');
+      expect(result).not.toContain('raw no hash');
+    });
+
+    it('should not confuse different hash counts (#36)', () => {
+      const input = 'let a = r##"first"##; let b = r#"second"#;';
+      const result = strip(input);
+      expect(result).not.toContain('first');
+      expect(result).not.toContain('second');
+    });
+
+    it('should strip block comments', () => {
+      const result = strip('let x = 5; /* comment */ let y = 10;');
+      expect(result).not.toContain('comment');
+    });
+
+    it('should strip line comments', () => {
+      const result = strip('let x = 5; // comment');
+      expect(result).not.toContain('comment');
     });
   });
 

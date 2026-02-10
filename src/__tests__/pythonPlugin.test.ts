@@ -520,18 +520,108 @@ real_func(x)`;
   });
 
   describe('FIX 8: class/def declaration lines should not be treated as usages', () => {
-    it('should not detect class declaration as usage', () => {
+    it('should not detect class declaration name as usage', () => {
       const content = `class MyService(BaseService):
     pass`;
       const ids = plugin.findUsedIdentifiers(content, 'test.py');
       expect(ids.some((id) => id.name === 'MyService')).toBe(false);
     });
 
-    it('should not detect def declaration as usage', () => {
+    it('should not detect def declaration name as usage', () => {
       const content = `def process_data(items):
     return items`;
       const ids = plugin.findUsedIdentifiers(content, 'test.py');
       expect(ids.some((id) => id.name === 'process_data')).toBe(false);
+    });
+  });
+
+  describe('FIX 27: class/def lines should detect base classes and type annotations', () => {
+    it('should detect base classes in class declaration', () => {
+      const content = `class MyClass(BaseModel):
+    pass`;
+      const ids = plugin.findUsedIdentifiers(content, 'test.py');
+      expect(ids.some((id) => id.name === 'MyClass')).toBe(false);
+      expect(ids.some((id) => id.name === 'BaseModel')).toBe(true);
+    });
+
+    it('should detect multiple base classes', () => {
+      const content = `class MyClass(BaseModel, Serializable):
+    pass`;
+      const ids = plugin.findUsedIdentifiers(content, 'test.py');
+      expect(ids.some((id) => id.name === 'MyClass')).toBe(false);
+      expect(ids.some((id) => id.name === 'BaseModel')).toBe(true);
+      expect(ids.some((id) => id.name === 'Serializable')).toBe(true);
+    });
+
+    it('should detect type annotations in def parameters', () => {
+      const content = `def func(x: MyType) -> ReturnType:
+    return x`;
+      const ids = plugin.findUsedIdentifiers(content, 'test.py');
+      expect(ids.some((id) => id.name === 'func')).toBe(false);
+      expect(ids.some((id) => id.name === 'MyType')).toBe(true);
+      expect(ids.some((id) => id.name === 'ReturnType')).toBe(true);
+    });
+
+    it('should not detect builtin base classes', () => {
+      const content = `class MyError(Exception):
+    pass`;
+      const ids = plugin.findUsedIdentifiers(content, 'test.py');
+      expect(ids.some((id) => id.name === 'Exception')).toBe(false);
+    });
+  });
+
+  describe('FIX 28: multi-line import edge cases', () => {
+    it('should not match unrelated parentheses across lines', () => {
+      const content = `from os import path
+result = func(
+    arg1,
+    arg2
+)`;
+      const imports = plugin.parseImports(content, 'test.py');
+      expect(imports).toHaveLength(1);
+      expect(imports[0].source).toBe('os');
+      expect(imports[0].imports).toEqual(['path']);
+    });
+
+    it('should handle parenthesized imports with comments stripped', () => {
+      const content = `from typing import (
+    List,
+    Dict,
+    Optional
+)
+from os import path`;
+      const imports = plugin.parseImports(content, 'test.py');
+      expect(imports).toHaveLength(2);
+      expect(imports[0].imports).toEqual(['List', 'Dict', 'Optional']);
+      expect(imports[1].imports).toEqual(['path']);
+    });
+  });
+
+  describe('FIX 47: from...import with as alias', () => {
+    it('should use alias name for from...import as', () => {
+      const content = `from datetime import datetime as dt`;
+      const imports = plugin.parseImports(content, 'test.py');
+      expect(imports).toHaveLength(1);
+      expect(imports[0].source).toBe('datetime');
+      expect(imports[0].imports).toEqual(['dt']);
+    });
+
+    it('should handle mixed aliased and non-aliased names', () => {
+      const content = `from collections import OrderedDict as OD, defaultdict, namedtuple as nt`;
+      const imports = plugin.parseImports(content, 'test.py');
+      expect(imports).toHaveLength(1);
+      expect(imports[0].imports).toEqual(['OD', 'defaultdict', 'nt']);
+    });
+
+    it('should handle aliased names in parenthesized imports', () => {
+      const content = `from typing import (
+    List as L,
+    Dict as D,
+    Optional
+)`;
+      const imports = plugin.parseImports(content, 'test.py');
+      expect(imports).toHaveLength(1);
+      expect(imports[0].imports).toEqual(['L', 'D', 'Optional']);
     });
   });
 });

@@ -1,3 +1,5 @@
+import { JSTS_BUILTINS, JSTS_KEYWORDS } from '@/constants/jstsKeywords.js';
+
 export interface ImportStatement {
   source: string;
   imports: string[];
@@ -150,33 +152,11 @@ export class AstParser {
   }
 
   private isBuiltIn(name: string): boolean {
-    const builtIns = [
-      'Array',
-      'Object',
-      'String',
-      'Number',
-      'Boolean',
-      'Symbol',
-      'Date',
-      'Error',
-      'RegExp',
-      'Map',
-      'Set',
-      'Promise',
-      'JSON',
-      'Math',
-      'Function',
-      'Infinity',
-      'NaN',
-      'undefined',
-      'null',
-    ];
-    return builtIns.includes(name);
+    return JSTS_BUILTINS.has(name);
   }
 
   private isKeyword(name: string): boolean {
-    const keywords = ['defineProps', 'defineEmits', 'defineExpose', 'defineSlots', 'withDefaults'];
-    return keywords.includes(name);
+    return JSTS_KEYWORDS.has(name);
   }
 
   private isCommonMethod(name: string): boolean {

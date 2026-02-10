@@ -20,7 +20,11 @@ export class PythonPlugin implements LanguagePlugin {
       const names = match[2]
         .split(',')
         .map((s) => s.trim())
-        .filter((s) => s.length > 0 && s !== '\\');
+        .filter((s) => s.length > 0 && s !== '\\')
+        .map((s) => {
+          const aliasParts = s.split(/\s+as\s+/);
+          return aliasParts.length > 1 ? aliasParts[aliasParts.length - 1] : s;
+        });
       imports.push({ source: match[1], imports: names, isDefault: false });
     }
 
@@ -44,36 +48,64 @@ export class PythonPlugin implements LanguagePlugin {
         trimmed.startsWith('#') ||
         trimmed.startsWith('import ') ||
         trimmed.startsWith('from ') ||
-        trimmed === '' ||
-        trimmed.startsWith('class ') ||
-        trimmed.startsWith('def ')
+        trimmed === ''
       ) {
         return;
       }
 
-      // PascalCase class usage: MyClass(...)
-      const classCallRegex = /(?<![.\w])([A-Z][a-zA-Z0-9_]*)\s*\(/g;
+      // For class/def lines, strip the definition keyword+name and scan the remainder
+      // e.g. "class Foo(Bar, Baz):" → scan "(Bar, Baz):" for base classes
+      // e.g. "def func(x: MyType) -> ReturnType:" → scan "(x: MyType) -> ReturnType:"
+      let scanLine = line;
+      let isDefLine = false;
+      if (trimmed.startsWith('class ')) {
+        isDefLine = true;
+        const classDefMatch = trimmed.match(/^class\s+\w+/);
+        if (classDefMatch) {
+          scanLine = trimmed.slice(classDefMatch[0].length);
+        }
+      } else if (trimmed.startsWith('def ')) {
+        isDefLine = true;
+        const defMatch = trimmed.match(/^def\s+\w+/);
+        if (defMatch) {
+          scanLine = trimmed.slice(defMatch[0].length);
+        }
+      }
+
       let match;
-      while ((match = classCallRegex.exec(line)) !== null) {
-        if (!this.isBuiltInOrKeyword(match[1])) {
-          identifiers.push({ name: match[1], line: lineIndex + 1, column: match.index });
-        }
-      }
 
-      // snake_case function calls: my_func(...)
-      const funcCallRegex = /(?<![.\w])([a-z_][a-z0-9_]*)\s*\(/g;
-      while ((match = funcCallRegex.exec(line)) !== null) {
-        const name = match[1];
-        if (!this.isBuiltInOrKeyword(name) && !PYTHON_COMMON_METHODS.has(name)) {
-          identifiers.push({ name, line: lineIndex + 1, column: match.index });
+      if (isDefLine) {
+        // On class/def lines, extract all PascalCase identifiers from the remainder
+        const identRegex = /(?<![.\w])([A-Z][a-zA-Z0-9_]*)\b/g;
+        while ((match = identRegex.exec(scanLine)) !== null) {
+          if (!this.isBuiltInOrKeyword(match[1])) {
+            identifiers.push({ name: match[1], line: lineIndex + 1, column: match.index });
+          }
         }
-      }
+      } else {
+        // PascalCase class usage: MyClass(...)
+        const classCallRegex = /(?<![.\w])([A-Z][a-zA-Z0-9_]*)\s*\(/g;
+        while ((match = classCallRegex.exec(scanLine)) !== null) {
+          if (!this.isBuiltInOrKeyword(match[1])) {
+            identifiers.push({ name: match[1], line: lineIndex + 1, column: match.index });
+          }
+        }
 
-      // Type annotations: variable: TypeName
-      const typeAnnotationRegex = /:\s*([A-Z][a-zA-Z0-9_]*)\b/g;
-      while ((match = typeAnnotationRegex.exec(line)) !== null) {
-        if (!this.isBuiltInOrKeyword(match[1])) {
-          identifiers.push({ name: match[1], line: lineIndex + 1, column: match.index });
+        // snake_case function calls: my_func(...)
+        const funcCallRegex = /(?<![.\w])([a-z_][a-z0-9_]*)\s*\(/g;
+        while ((match = funcCallRegex.exec(scanLine)) !== null) {
+          const name = match[1];
+          if (!this.isBuiltInOrKeyword(name) && !PYTHON_COMMON_METHODS.has(name)) {
+            identifiers.push({ name, line: lineIndex + 1, column: match.index });
+          }
+        }
+
+        // Type annotations: variable: TypeName
+        const typeAnnotationRegex = /:\s*([A-Z][a-zA-Z0-9_]*)\b/g;
+        while ((match = typeAnnotationRegex.exec(scanLine)) !== null) {
+          if (!this.isBuiltInOrKeyword(match[1])) {
+            identifiers.push({ name: match[1], line: lineIndex + 1, column: match.index });
+          }
         }
       }
     });

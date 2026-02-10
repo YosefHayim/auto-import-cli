@@ -95,8 +95,11 @@ Path aliases from `tsconfig.json` (e.g. `@/components/Card`) are used automatica
 | Svelte | `.svelte` | SvelteKit |
 | Astro | `.astro` | Astro frontmatter |
 | Python | `.py` | `from`/`import` statements, `def`/`class` exports |
+| Elixir | `.ex` `.exs` | Mix projects |
+| Go | `.go` | Go modules |
+| Rust | `.rs` | Cargo projects |
 
-More languages coming — see [open issues](https://github.com/YosefHayim/auto-import-cli/issues) for Elixir, Go, Rust, and others.
+See [open issues](https://github.com/YosefHayim/auto-import-cli/issues) for additional language support.
 
 ---
 

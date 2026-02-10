@@ -78,6 +78,11 @@ describe('importSorter', () => {
       expect(classifyPythonImport('from .models import User')).toBe('local');
       expect(classifyPythonImport('from ..config import settings')).toBe('local');
     });
+
+    it('should handle comma-separated imports correctly', () => {
+      expect(classifyPythonImport('import os, sys')).toBe('stdlib');
+      expect(classifyPythonImport('import json, os')).toBe('stdlib');
+    });
   });
 
   describe('sortImports - JS/TS', () => {

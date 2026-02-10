@@ -284,4 +284,179 @@ export { foo, baz };
       expect(exports.some((e: any) => e.name === 'baseClass')).toBe(true);
     });
   });
+
+  describe('FIX 21: stripJsonComments respects string literals', () => {
+    it('should preserve // inside string literals (URLs)', async () => {
+      const tmpDir = path.join(process.cwd(), 'tests', '_tmp_stripjson_url_test');
+      await fs.mkdir(tmpDir, { recursive: true });
+      await fs.writeFile(
+        path.join(tmpDir, 'tsconfig.json'),
+        `{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "typeRoots": ["https://example.com/types"]
+  }
+}`,
+      );
+      const srcDir = path.join(tmpDir, 'src');
+      await fs.mkdir(srcDir, { recursive: true });
+      await fs.writeFile(path.join(srcDir, 'util.ts'), 'export function helper() {}');
+
+      try {
+        const resolver = new ImportResolver({ projectRoot: tmpDir });
+        await resolver.buildExportCache();
+        expect(resolver.getPathAliases().length).toBeGreaterThan(0);
+      } finally {
+        await fs.rm(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should preserve // inside string literals with escaped quotes', async () => {
+      const tmpDir = path.join(process.cwd(), 'tests', '_tmp_stripjson_escaped_test');
+      await fs.mkdir(tmpDir, { recursive: true });
+      await fs.writeFile(
+        path.join(tmpDir, 'tsconfig.json'),
+        `{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "description": "This is a \\"quoted\\" string with // slashes"
+  }
+}`,
+      );
+      const srcDir = path.join(tmpDir, 'src');
+      await fs.mkdir(srcDir, { recursive: true });
+      await fs.writeFile(path.join(srcDir, 'util.ts'), 'export function helper() {}');
+
+      try {
+        const resolver = new ImportResolver({ projectRoot: tmpDir });
+        await resolver.buildExportCache();
+        expect(resolver.getPathAliases().length).toBeGreaterThan(0);
+      } finally {
+        await fs.rm(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should strip line comments outside strings', async () => {
+      const tmpDir = path.join(process.cwd(), 'tests', '_tmp_stripjson_linecomment_test');
+      await fs.mkdir(tmpDir, { recursive: true });
+      await fs.writeFile(
+        path.join(tmpDir, 'tsconfig.json'),
+        `{
+  // This comment should be removed
+  "compilerOptions": {
+    "baseUrl": ".", // inline comment
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  }
+}`,
+      );
+      const srcDir = path.join(tmpDir, 'src');
+      await fs.mkdir(srcDir, { recursive: true });
+      await fs.writeFile(path.join(srcDir, 'util.ts'), 'export function helper() {}');
+
+      try {
+        const resolver = new ImportResolver({ projectRoot: tmpDir });
+        await resolver.buildExportCache();
+        expect(resolver.getPathAliases().length).toBeGreaterThan(0);
+      } finally {
+        await fs.rm(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should strip block comments outside strings', async () => {
+      const tmpDir = path.join(process.cwd(), 'tests', '_tmp_stripjson_blockcomment_test');
+      await fs.mkdir(tmpDir, { recursive: true });
+      await fs.writeFile(
+        path.join(tmpDir, 'tsconfig.json'),
+        `{
+  /* This is a block comment */
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  }
+  /* Another block comment */
+}`,
+      );
+      const srcDir = path.join(tmpDir, 'src');
+      await fs.mkdir(srcDir, { recursive: true });
+      await fs.writeFile(path.join(srcDir, 'util.ts'), 'export function helper() {}');
+
+      try {
+        const resolver = new ImportResolver({ projectRoot: tmpDir });
+        await resolver.buildExportCache();
+        expect(resolver.getPathAliases().length).toBeGreaterThan(0);
+      } finally {
+        await fs.rm(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should remove trailing commas', async () => {
+      const tmpDir = path.join(process.cwd(), 'tests', '_tmp_stripjson_trailingcomma_test');
+      await fs.mkdir(tmpDir, { recursive: true });
+      await fs.writeFile(
+        path.join(tmpDir, 'tsconfig.json'),
+        `{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+    },
+  },
+}`,
+      );
+      const srcDir = path.join(tmpDir, 'src');
+      await fs.mkdir(srcDir, { recursive: true });
+      await fs.writeFile(path.join(srcDir, 'util.ts'), 'export function helper() {}');
+
+      try {
+        const resolver = new ImportResolver({ projectRoot: tmpDir });
+        await resolver.buildExportCache();
+        expect(resolver.getPathAliases().length).toBeGreaterThan(0);
+      } finally {
+        await fs.rm(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should handle complex JSONC with all features combined', async () => {
+      const tmpDir = path.join(process.cwd(), 'tests', '_tmp_stripjson_complex_test');
+      await fs.mkdir(tmpDir, { recursive: true });
+      await fs.writeFile(
+        path.join(tmpDir, 'tsconfig.json'),
+        `{
+  /* Main config */
+  "compilerOptions": {
+    "baseUrl": ".", // base directory
+    "paths": {
+      "@/*": ["src/*"], // main alias
+      "@utils/*": ["src/utils/*"],
+    },
+    "typeRoots": ["https://example.com/types"], // URL with //
+  },
+  // End of config
+}`,
+      );
+      const srcDir = path.join(tmpDir, 'src', 'utils');
+      await fs.mkdir(srcDir, { recursive: true });
+      await fs.writeFile(path.join(srcDir, 'helper.ts'), 'export function helper() {}');
+
+      try {
+        const resolver = new ImportResolver({ projectRoot: tmpDir });
+        await resolver.buildExportCache();
+        const aliases = resolver.getPathAliases();
+        expect(aliases.length).toBeGreaterThan(0);
+        expect(aliases.some((a) => a.pattern === '@/*')).toBe(true);
+      } finally {
+        await fs.rm(tmpDir, { recursive: true, force: true });
+      }
+    });
+  });
 });

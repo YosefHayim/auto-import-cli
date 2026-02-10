@@ -82,7 +82,7 @@ function classifyJsTsSource(source: string): ImportGroup {
 
 export function classifyPythonImport(importStatement: string): PythonImportGroup {
   const fromMatch = importStatement.match(/^\s*from\s+(\S+)\s+import/);
-  const importMatch = importStatement.match(/^\s*import\s+(\S+)/);
+  const importMatch = importStatement.match(/^\s*import\s+([\w.]+)/);
   const moduleName = fromMatch ? fromMatch[1] : importMatch ? importMatch[1] : '';
 
   if (!moduleName) {
@@ -101,7 +101,7 @@ export function classifyPythonImport(importStatement: string): PythonImportGroup
   return 'thirdparty';
 }
 
-export function sortImports(imports: string[], language: string): string[] {
+export function sortImports(imports: string[], language: string, sortOrder: string = 'alpha'): string[] {
   if (imports.length === 0) {
     return [];
   }
@@ -109,12 +109,12 @@ export function sortImports(imports: string[], language: string): string[] {
   const isPython = language === 'python';
 
   if (isPython) {
-    return sortPythonImports(imports);
+    return sortPythonImports(imports, sortOrder);
   }
-  return sortJsTsImports(imports);
+  return sortJsTsImports(imports, sortOrder);
 }
 
-function sortJsTsImports(imports: string[]): string[] {
+function sortJsTsImports(imports: string[], sortOrder: string = 'alpha'): string[] {
   const groups: Record<ImportGroup, string[]> = {
     builtin: [],
     external: [],
@@ -127,6 +127,12 @@ function sortJsTsImports(imports: string[]): string[] {
     groups[group].push(imp);
   }
 
+  if (sortOrder === 'natural') {
+    // Preserve original order within groups
+    return assembleGroups([groups.builtin, groups.external, groups.alias, groups.relative]);
+  }
+
+  // Default 'alpha' sort
   const sortBySource = (a: string, b: string): number => {
     const sourceA = extractSource(a).toLowerCase();
     const sourceB = extractSource(b).toLowerCase();
@@ -140,7 +146,7 @@ function sortJsTsImports(imports: string[]): string[] {
   return assembleGroups([groups.builtin, groups.external, groups.alias, groups.relative]);
 }
 
-function sortPythonImports(imports: string[]): string[] {
+function sortPythonImports(imports: string[], sortOrder: string = 'alpha'): string[] {
   const groups: Record<PythonImportGroup, string[]> = {
     stdlib: [],
     thirdparty: [],
@@ -152,6 +158,12 @@ function sortPythonImports(imports: string[]): string[] {
     groups[group].push(imp);
   }
 
+  if (sortOrder === 'natural') {
+    // Preserve original order within groups
+    return assembleGroups([groups.stdlib, groups.thirdparty, groups.local]);
+  }
+
+  // Default 'alpha' sort
   const sortAlpha = (a: string, b: string): number => a.localeCompare(b);
 
   for (const key of Object.keys(groups) as PythonImportGroup[]) {
@@ -188,7 +200,7 @@ function extractSource(importStatement: string): string {
   const pyFromMatch = importStatement.match(/^\s*from\s+(\S+)\s+import/);
   if (pyFromMatch) return pyFromMatch[1];
 
-  const pyImportMatch = importStatement.match(/^\s*import\s+(\S+)/);
+  const pyImportMatch = importStatement.match(/^\s*import\s+([\w.]+)/);
   if (pyImportMatch) return pyImportMatch[1];
 
   return importStatement;
@@ -197,7 +209,8 @@ function extractSource(importStatement: string): string {
 export function groupImportStatements(
   existingContent: string,
   newImports: string[],
-  language: string
+  language: string,
+  sortOrder: string = 'alpha'
 ): string[] {
   const isPython = language === 'python';
   const existingImports = extractExistingImports(existingContent, isPython);
@@ -213,7 +226,7 @@ export function groupImportStatements(
     }
   }
 
-  return sortImports(allImports, language);
+  return sortImports(allImports, language, sortOrder);
 }
 
 function extractExistingImports(content: string, isPython: boolean): string[] {

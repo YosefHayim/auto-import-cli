@@ -223,8 +223,13 @@ export class ImportResolver {
 }
 
 function stripJsonComments(text: string): string {
-  let result = text.replace(/\/\*[\s\S]*?\*\//g, '');
-  result = result.replace(/\/\/.*$/gm, '');
+  // Single-pass regex: match strings first (priority), then comments
+  // Strings take precedence — their content is preserved
+  let result = text.replace(
+    /("(?:[^"\\]|\\.)*")|\/\/[^\n]*|\/\*[\s\S]*?\*\//g,
+    (_match, str) => str || ''
+  );
+  // Remove trailing commas
   result = result.replace(/,\s*([}\]])/g, '$1');
   return result;
 }

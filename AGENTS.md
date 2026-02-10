@@ -92,7 +92,7 @@ bin/import-pilot.js
 - **Chalk semantic colors** — blue=info, green=success, yellow=warn, red=error, gray=neutral
 - **Console logging only** — no logger library; verbose gated by `options.verbose`
 - **Interfaces co-located** — exported interfaces live in same file as their class
-- **No linter/formatter** — no ESLint, no Prettier, no pre-commit hooks
+- **ESLint + Prettier** — enforced via husky pre-commit hook with lint-staged
 
 ## ANTI-PATTERNS (THIS PROJECT)
 
