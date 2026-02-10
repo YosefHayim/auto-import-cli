@@ -34,9 +34,7 @@ export class FileScanner {
     const cwd = options.cwd || process.cwd();
 
     // Create glob pattern for all extensions
-    const pattern = extensions.length === 1 
-      ? `**/*${extensions[0]}`
-      : `**/*{${extensions.join(',')}}`;
+    const pattern = extensions.length === 1 ? `**/*${extensions[0]}` : `**/*{${extensions.join(',')}}`;
 
     // Find all matching files
     const files = await glob(pattern, {

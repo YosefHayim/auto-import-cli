@@ -23,9 +23,20 @@ export type { LanguagePlugin } from './plugins/languagePlugin.js';
 export type { ImportGroup, PythonImportGroup } from './sorter/importSorter.js';
 
 // Reporter
-export { writeReport, generateMarkdownReport, generateTextReport, generateJsonReport } from './reporter/reportGenerator.js';
+export {
+  writeReport,
+  generateMarkdownReport,
+  generateTextReport,
+  generateJsonReport,
+} from './reporter/reportGenerator.js';
 export type { ReportFormat, ReportEntry, ReportData } from './reporter/reportGenerator.js';
 
 // Setup wizard
-export { runSetupWizard, detectFileExtensions, detectHusky, generateConfig, loadConfigFile } from './cli/setupWizard.js';
+export {
+  runSetupWizard,
+  detectFileExtensions,
+  detectHusky,
+  generateConfig,
+  loadConfigFile,
+} from './cli/setupWizard.js';
 export type { AutoImportConfig } from './cli/setupWizard.js';

@@ -12,13 +12,18 @@ export interface AutoImportConfig {
 }
 
 const DEFAULT_IGNORE = [
-  '**/node_modules/**', '**/dist/**', '**/build/**', '**/.next/**',
-  '**/.git/**', '**/coverage/**', '**/__pycache__/**', '**/.venv/**', '**/venv/**',
+  '**/node_modules/**',
+  '**/dist/**',
+  '**/build/**',
+  '**/.next/**',
+  '**/.git/**',
+  '**/coverage/**',
+  '**/__pycache__/**',
+  '**/.venv/**',
+  '**/venv/**',
 ];
 
-const SCAN_IGNORE = [
-  ...DEFAULT_IGNORE, '**/.nuxt/**', '**/.output/**',
-];
+const SCAN_IGNORE = [...DEFAULT_IGNORE, '**/.nuxt/**', '**/.output/**'];
 
 export async function detectFileExtensions(directory: string): Promise<string[]> {
   const files = await glob('**/*.*', {
@@ -49,14 +54,24 @@ export async function detectHusky(directory: string): Promise<{ installed: boole
   const huskyDir = path.join(directory, '.husky');
 
   let dirExists = false;
-  try { await fs.access(huskyDir); dirExists = true; } catch { /* noop */ }
+  try {
+    await fs.access(huskyDir);
+    dirExists = true;
+  } catch {
+    /* noop */
+  }
 
   const inDeps = !!(pkg?.devDependencies?.husky || pkg?.dependencies?.husky);
   const installed = dirExists || inDeps;
 
   let hasPreCommit = false;
   if (dirExists) {
-    try { await fs.access(path.join(huskyDir, 'pre-commit')); hasPreCommit = true; } catch { /* noop */ }
+    try {
+      await fs.access(path.join(huskyDir, 'pre-commit'));
+      hasPreCommit = true;
+    } catch {
+      /* noop */
+    }
   }
 
   return { installed, hasPreCommit };

@@ -4,20 +4,9 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { execSync } from 'child_process';
 import { getAllExtensions } from '@/plugins/index.js';
-import {
-  detectFileExtensions,
-  readPackageJson,
-  detectHusky,
-  generateConfig,
-} from './wizardUtils.js';
+import { detectFileExtensions, readPackageJson, detectHusky, generateConfig } from './wizardUtils.js';
 
-export {
-  detectFileExtensions,
-  readPackageJson,
-  detectHusky,
-  generateConfig,
-  loadConfigFile,
-} from './wizardUtils.js';
+export { detectFileExtensions, readPackageJson, detectHusky, generateConfig, loadConfigFile } from './wizardUtils.js';
 export type { AutoImportConfig } from './wizardUtils.js';
 
 /* ------------------------------------------------------------------ */
@@ -81,14 +70,17 @@ async function stepExtensions(state: WizardState): Promise<StepResult> {
 
   const extensions = await p.multiselect({
     message: 'Which file types should import-pilot scan?',
-    options: state.supportedExts.map(ext => ({
+    options: state.supportedExts.map((ext) => ({
       value: ext,
       label: ext,
       hint: state.detected.includes(ext) ? 'detected in project' : undefined,
     })),
-    initialValues: state.selectedExtensions.length > 0
-      ? state.selectedExtensions
-      : (state.detected.length > 0 ? state.detected : undefined),
+    initialValues:
+      state.selectedExtensions.length > 0
+        ? state.selectedExtensions
+        : state.detected.length > 0
+          ? state.detected
+          : undefined,
     required: true,
   });
   cancelled(extensions);
@@ -186,11 +178,7 @@ async function stepScripts(state: WizardState): Promise<StepResult> {
       pkg.scripts['import-pilot'] = 'import-pilot';
       pkg.scripts['import-pilot:check'] = 'import-pilot --dry-run --verbose';
       pkg.scripts['import-pilot:fix'] = 'import-pilot';
-      await fs.writeFile(
-        path.join(state.projectRoot, 'package.json'),
-        JSON.stringify(pkg, null, 2) + '\n',
-        'utf-8',
-      );
+      await fs.writeFile(path.join(state.projectRoot, 'package.json'), JSON.stringify(pkg, null, 2) + '\n', 'utf-8');
       p.log.success('Added scripts: ' + chalk.cyan('import-pilot, import-pilot:check, import-pilot:fix'));
     }
   } else {
@@ -232,7 +220,11 @@ async function stepHusky(state: WizardState): Promise<StepResult> {
       const hookPath = path.join(state.projectRoot, '.husky', 'pre-commit');
       await fs.mkdir(path.join(state.projectRoot, '.husky'), { recursive: true });
       await fs.writeFile(hookPath, 'npx import-pilot --dry-run\n', 'utf-8');
-      try { await fs.chmod(hookPath, 0o755); } catch { /* noop */ }
+      try {
+        await fs.chmod(hookPath, 0o755);
+      } catch {
+        /* noop */
+      }
       p.log.success('Created pre-commit hook with import-pilot check');
     }
   } else {
@@ -248,7 +240,11 @@ async function stepHusky(state: WizardState): Promise<StepResult> {
         execSync('npx husky init', { cwd: state.projectRoot, stdio: 'pipe' });
         const hookPath = path.join(state.projectRoot, '.husky', 'pre-commit');
         await fs.writeFile(hookPath, 'npx import-pilot --dry-run\n', 'utf-8');
-        try { await fs.chmod(hookPath, 0o755); } catch { /* noop */ }
+        try {
+          await fs.chmod(hookPath, 0o755);
+        } catch {
+          /* noop */
+        }
         spin.stop('Husky installed with pre-commit hook');
       } catch {
         spin.stop('Husky installation failed');
@@ -273,21 +269,26 @@ export async function runSetupWizard(directory: string): Promise<void> {
 
   const allDetected = await detectFileExtensions(projectRoot);
   const supportedExts = getAllExtensions();
-  const detected = allDetected.filter(ext => supportedExts.includes(ext));
-  const unsupported = allDetected.filter(ext => !supportedExts.includes(ext));
+  const detected = allDetected.filter((ext) => supportedExts.includes(ext));
+  const unsupported = allDetected.filter((ext) => !supportedExts.includes(ext));
 
   spin.stop(`Found ${allDetected.length} file types (${detected.length} supported)`);
 
   if (unsupported.length > 0) {
     p.log.info(
       chalk.gray('Unsupported types (skipped): ') +
-      chalk.gray(unsupported.slice(0, 12).join(', ')) +
-      (unsupported.length > 12 ? chalk.gray('...') : ''),
+        chalk.gray(unsupported.slice(0, 12).join(', ')) +
+        (unsupported.length > 12 ? chalk.gray('...') : ''),
     );
   }
 
   let hasTsconfig = false;
-  try { await fs.access(path.join(projectRoot, 'tsconfig.json')); hasTsconfig = true; } catch { /* noop */ }
+  try {
+    await fs.access(path.join(projectRoot, 'tsconfig.json'));
+    hasTsconfig = true;
+  } catch {
+    /* noop */
+  }
 
   // Wizard state — persists across back/forward navigation
   const state: WizardState = {

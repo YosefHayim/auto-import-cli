@@ -21,8 +21,20 @@ function makeReportData(overrides: Partial<ReportData> = {}): ReportData {
     totalUnresolved: 2,
     dryRun: true,
     entries: [
-      { file: 'src/app.ts', identifier: 'Card', importStatement: "import { Card } from '@/components/Card';", source: '@/components/Card', isDefault: false },
-      { file: 'src/app.ts', identifier: 'formatDate', importStatement: "import { formatDate } from '@/utils/date';", source: '@/utils/date', isDefault: false },
+      {
+        file: 'src/app.ts',
+        identifier: 'Card',
+        importStatement: "import { Card } from '@/components/Card';",
+        source: '@/components/Card',
+        isDefault: false,
+      },
+      {
+        file: 'src/app.ts',
+        identifier: 'formatDate',
+        importStatement: "import { formatDate } from '@/utils/date';",
+        source: '@/utils/date',
+        isDefault: false,
+      },
       { file: 'src/page.tsx', identifier: 'UnknownWidget', importStatement: null, source: null, isDefault: false },
     ],
     ...overrides,
@@ -65,7 +77,15 @@ describe('reportGenerator', () => {
     it('should omit unresolved section when all resolved', () => {
       const data = makeReportData({
         totalUnresolved: 0,
-        entries: [{ file: 'x.ts', identifier: 'Foo', importStatement: "import Foo from './Foo';", source: './Foo', isDefault: true }],
+        entries: [
+          {
+            file: 'x.ts',
+            identifier: 'Foo',
+            importStatement: "import Foo from './Foo';",
+            source: './Foo',
+            isDefault: true,
+          },
+        ],
       });
       const md = generateMarkdownReport(data);
       expect(md).toContain('## Resolved Imports');
@@ -135,7 +155,11 @@ describe('reportGenerator', () => {
     });
 
     afterEach(async () => {
-      try { await fs.rm(tmpDir, { recursive: true, force: true }); } catch { /* cleanup */ }
+      try {
+        await fs.rm(tmpDir, { recursive: true, force: true });
+      } catch {
+        /* cleanup */
+      }
     });
 
     it('should return null for format "none"', async () => {

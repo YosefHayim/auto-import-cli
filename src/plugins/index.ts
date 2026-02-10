@@ -22,12 +22,12 @@ const DEFAULT_PLUGINS: LanguagePlugin[] = [
 
 export function getPluginForExtension(ext: string, plugins?: LanguagePlugin[]): LanguagePlugin | null {
   const list = plugins ?? DEFAULT_PLUGINS;
-  return list.find(p => p.extensions.includes(ext.toLowerCase())) ?? null;
+  return list.find((p) => p.extensions.includes(ext.toLowerCase())) ?? null;
 }
 
 export function getAllExtensions(plugins?: LanguagePlugin[]): string[] {
   const list = plugins ?? DEFAULT_PLUGINS;
-  return list.flatMap(p => p.extensions);
+  return list.flatMap((p) => p.extensions);
 }
 
 export function getDefaultPlugins(): LanguagePlugin[] {

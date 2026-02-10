@@ -19,7 +19,7 @@ export function MyComponent() {
 `;
 
       const result = parser.parse(content);
-      
+
       expect(result.existingImports).toHaveLength(2);
       expect(result.existingImports[0].source).toBe('react');
       expect(result.existingImports[0].imports).toContain('useState');
@@ -41,9 +41,9 @@ export function MyComponent() {
 `;
 
       const result = parser.parse(content);
-      
-      expect(result.usedIdentifiers.some(id => id.name === 'Card')).toBe(true);
-      expect(result.usedIdentifiers.some(id => id.name === 'Button')).toBe(true);
+
+      expect(result.usedIdentifiers.some((id) => id.name === 'Card')).toBe(true);
+      expect(result.usedIdentifiers.some((id) => id.name === 'Button')).toBe(true);
     });
 
     it('should detect function calls', () => {
@@ -55,8 +55,8 @@ export function MyComponent() {
 `;
 
       const result = parser.parse(content);
-      
-      expect(result.usedIdentifiers.some(id => id.name === 'formatName')).toBe(true);
+
+      expect(result.usedIdentifiers.some((id) => id.name === 'formatName')).toBe(true);
     });
 
     it('should not detect method calls as missing imports', () => {
@@ -69,7 +69,7 @@ export function MyComponent() {
 `;
 
       const result = parser.parse(content);
-      
+
       expect(result.missingImports).not.toContain('toUpperCase');
     });
 
@@ -81,7 +81,7 @@ export function MyComponent() {
 `;
 
       const result = parser.parse(content);
-      
+
       expect(result.missingImports).toContain('Card');
       expect(result.missingImports).toContain('Button');
     });
@@ -96,7 +96,7 @@ export function MyComponent() {
 `;
 
       const result = parser.parse(content);
-      
+
       expect(result.missingImports).not.toContain('Card');
     });
 
@@ -110,7 +110,7 @@ export function MyComponent() {
 `;
 
       const result = parser.parse(content);
-      
+
       expect(result.existingImports[0].isNamespace).toBe(true);
       expect(result.existingImports[0].imports).toContain('React');
     });

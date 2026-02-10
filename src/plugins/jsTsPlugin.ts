@@ -61,8 +61,11 @@ export class JsTsPlugin implements LanguagePlugin {
 
     const exportNamedRegex = /export\s+\{([^}]+)\}/g;
     while ((match = exportNamedRegex.exec(scriptContent)) !== null) {
-      const names = match[1].split(',').map(s => s.trim()).filter(s => s.length > 0);
-      names.forEach(name => {
+      const names = match[1]
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+      names.forEach((name) => {
         const stripped = name.replace(/^type\s+/, '');
         const parts = stripped.split(/\s+as\s+/);
         const exportedName = parts[parts.length - 1].replace(/^type\s+/, '');
@@ -78,9 +81,7 @@ export class JsTsPlugin implements LanguagePlugin {
   }
 
   generateImportStatement(identifier: string, source: string, isDefault: boolean): string {
-    return isDefault
-      ? `import ${identifier} from '${source}';`
-      : `import { ${identifier} } from '${source}';`;
+    return isDefault ? `import ${identifier} from '${source}';` : `import { ${identifier} } from '${source}';`;
   }
 
   getImportInsertPosition(content: string, filePath: string): number {
@@ -125,8 +126,7 @@ export class JsTsPlugin implements LanguagePlugin {
 
     for (let i = 0; i < lines.length; i++) {
       const trimmed = lines[i].trim();
-      if (trimmed.startsWith('//') || trimmed.startsWith('/*') ||
-          trimmed.startsWith('*') || trimmed === '') {
+      if (trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('*') || trimmed === '') {
         firstCodeLine = i + 1;
         continue;
       }
@@ -142,12 +142,32 @@ export class JsTsPlugin implements LanguagePlugin {
 }
 
 const JSTS_BUILTINS = new Set([
-  'Array', 'Object', 'String', 'Number', 'Boolean', 'Symbol', 'Date',
-  'Error', 'RegExp', 'Map', 'Set', 'Promise', 'JSON', 'Math',
-  'Function', 'Infinity', 'NaN', 'undefined', 'null',
+  'Array',
+  'Object',
+  'String',
+  'Number',
+  'Boolean',
+  'Symbol',
+  'Date',
+  'Error',
+  'RegExp',
+  'Map',
+  'Set',
+  'Promise',
+  'JSON',
+  'Math',
+  'Function',
+  'Infinity',
+  'NaN',
+  'undefined',
+  'null',
 ]);
 
 const JSTS_KEYWORDS = new Set([
   // Vue compiler macros — these are compiler-injected globals, not importable
-  'defineProps', 'defineEmits', 'defineExpose', 'defineSlots', 'withDefaults',
+  'defineProps',
+  'defineEmits',
+  'defineExpose',
+  'defineSlots',
+  'withDefaults',
 ]);

@@ -51,7 +51,7 @@ export class AutoImportCli {
 
     let extensions: string[];
     if (options.extensions) {
-      extensions = options.extensions.split(',').map(ext => ext.trim().startsWith('.') ? ext.trim() : '.' + ext.trim());
+      extensions = options.extensions.split(',').map((ext) => (ext.trim().startsWith('.') ? ext.trim() : '.' + ext.trim()));
     } else {
       const detected = await detectProjectLanguages(projectRoot);
       if (detected.length > 0) {
@@ -74,9 +74,7 @@ export class AutoImportCli {
     await this.resolver.buildExportCache();
     console.log(chalk.green('✓ Export cache built\n'));
 
-    const ignore = options.ignore
-      ? options.ignore.split(',').map(pattern => pattern.trim())
-      : undefined;
+    const ignore = options.ignore ? options.ignore.split(',').map((pattern) => pattern.trim()) : undefined;
 
     const files = await this.scanner.scan({
       cwd: projectRoot,
@@ -98,13 +96,17 @@ export class AutoImportCli {
       const usedIdentifiers = plugin.findUsedIdentifiers(file.content, file.path);
 
       const importedNames = new Set<string>();
-      existingImports.forEach(imp => { imp.imports.forEach(name => { importedNames.add(name); }); });
+      existingImports.forEach((imp) => {
+        imp.imports.forEach((name) => {
+          importedNames.add(name);
+        });
+      });
 
       const missingIdentifiers = usedIdentifiers
-        .map(id => id.name)
+        .map((id) => id.name)
         .filter((name, idx, self) => self.indexOf(name) === idx)
-        .filter(name => !importedNames.has(name))
-        .filter(name => !plugin.isBuiltInOrKeyword(name));
+        .filter((name) => !importedNames.has(name))
+        .filter((name) => !plugin.isBuiltInOrKeyword(name));
 
       if (missingIdentifiers.length > 0) {
         filesWithIssues++;
@@ -158,7 +160,7 @@ export class AutoImportCli {
       }
     }
 
-    const resolvable = allMissingImports.filter(m => m.suggestion).length;
+    const resolvable = allMissingImports.filter((m) => m.suggestion).length;
 
     console.log(chalk.blue('\n\n📊 Summary:'));
     console.log(chalk.gray(`  Total files scanned: ${files.length}`));
@@ -169,7 +171,7 @@ export class AutoImportCli {
     if (options.dryRun) {
       console.log(chalk.yellow('\n⚠️  Dry run mode - no files were modified'));
     } else {
-      const fixable = allMissingImports.filter(m => m.suggestion);
+      const fixable = allMissingImports.filter((m) => m.suggestion);
       if (fixable.length > 0) {
         console.log(chalk.blue(`\n✨ Applying ${fixable.length} fixes...`));
         await this.applyFixes(fixable, options.sort !== false);
@@ -221,7 +223,7 @@ export class AutoImportCli {
       for (const item of imports) {
         if (item.suggestion) {
           newImports.push(
-            plugin.generateImportStatement(item.identifier, item.suggestion.source, item.suggestion.isDefault)
+            plugin.generateImportStatement(item.identifier, item.suggestion.source, item.suggestion.isDefault),
           );
         }
       }
@@ -260,7 +262,9 @@ export function createCli(): Command {
         try {
           const raw = await fs.readFile(configPath, 'utf-8');
           fileConfig = JSON.parse(raw);
-        } catch { /* no config file */ }
+        } catch {
+          /* no config file */
+        }
 
         if (fileConfig) {
           if (!options.extensions && fileConfig.extensions) {

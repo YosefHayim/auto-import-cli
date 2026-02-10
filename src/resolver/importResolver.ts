@@ -19,9 +19,9 @@ export interface ResolverOptions {
 }
 
 export interface PathAlias {
-  pattern: string;       // e.g. "@/*"
-  prefix: string;        // e.g. "@/"
-  targetPrefix: string;  // e.g. "src/"
+  pattern: string; // e.g. "@/*"
+  prefix: string; // e.g. "@/"
+  targetPrefix: string; // e.g. "src/"
 }
 
 export class ImportResolver {
@@ -63,9 +63,7 @@ export class ImportResolver {
         const content = await fs.readFile(filePath, 'utf-8');
         const ext = path.extname(filePath);
         const plugin = getPluginForExtension(ext, this.options.plugins);
-        const exports = plugin
-          ? plugin.parseExports(content, filePath)
-          : this.parseExportsLegacy(content, filePath);
+        const exports = plugin ? plugin.parseExports(content, filePath) : this.parseExportsLegacy(content, filePath);
 
         if (exports.length > 0) {
           this.exportCache.set(filePath, exports);
@@ -80,7 +78,7 @@ export class ImportResolver {
     for (const [filePath, exports] of this.exportCache.entries()) {
       if (filePath === currentFile) continue;
 
-      const matchingExport = exports.find(exp => exp.name === identifier);
+      const matchingExport = exports.find((exp) => exp.name === identifier);
       if (matchingExport) {
         const relativePath = this.getRelativeImportPath(currentFile, filePath);
         return {
@@ -129,8 +127,11 @@ export class ImportResolver {
 
     const exportNamedRegex = /export\s+\{([^}]+)\}/g;
     while ((match = exportNamedRegex.exec(content)) !== null) {
-      const names = match[1].split(',').map(s => s.trim()).filter(s => s.length > 0);
-      names.forEach(name => {
+      const names = match[1]
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+      names.forEach((name) => {
         const stripped = name.replace(/^type\s+/, '');
         const parts = stripped.split(/\s+as\s+/);
         const exportedName = parts[parts.length - 1].replace(/^type\s+/, '');
@@ -202,13 +203,13 @@ export class ImportResolver {
 
     const fromDir = path.dirname(fromFile);
     let relativePath = path.relative(fromDir, toFile).replace(/\\/g, '/');
-    
+
     relativePath = relativePath.replace(/\.(ts|tsx|js|jsx|py)$/, '');
-    
+
     if (!relativePath.startsWith('.')) {
       relativePath = './' + relativePath;
     }
-    
+
     return relativePath;
   }
 

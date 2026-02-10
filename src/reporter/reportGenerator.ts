@@ -48,7 +48,7 @@ export function generateMarkdownReport(data: ReportData): string {
   lines.push(`| Unresolved | ${data.totalUnresolved} |`);
   lines.push('');
 
-  const resolved = data.entries.filter(e => e.importStatement);
+  const resolved = data.entries.filter((e) => e.importStatement);
   if (resolved.length > 0) {
     lines.push('## Resolved Imports');
     lines.push('');
@@ -61,7 +61,7 @@ export function generateMarkdownReport(data: ReportData): string {
     lines.push('');
   }
 
-  const unresolved = data.entries.filter(e => !e.importStatement);
+  const unresolved = data.entries.filter((e) => !e.importStatement);
   if (unresolved.length > 0) {
     lines.push('## Unresolved Identifiers');
     lines.push('');
@@ -95,7 +95,7 @@ export function generateTextReport(data: ReportData): string {
   lines.push(`Unresolved:      ${data.totalUnresolved}`);
   lines.push('');
 
-  const resolved = data.entries.filter(e => e.importStatement);
+  const resolved = data.entries.filter((e) => e.importStatement);
   if (resolved.length > 0) {
     lines.push('RESOLVED IMPORTS');
     lines.push('-'.repeat(50));
@@ -106,7 +106,7 @@ export function generateTextReport(data: ReportData): string {
     lines.push('');
   }
 
-  const unresolved = data.entries.filter(e => !e.importStatement);
+  const unresolved = data.entries.filter((e) => !e.importStatement);
   if (unresolved.length > 0) {
     lines.push('UNRESOLVED IDENTIFIERS');
     lines.push('-'.repeat(50));
@@ -123,11 +123,7 @@ export function generateJsonReport(data: ReportData): string {
   return JSON.stringify(data, null, 2) + '\n';
 }
 
-export async function writeReport(
-  projectRoot: string,
-  format: ReportFormat,
-  data: ReportData,
-): Promise<string | null> {
+export async function writeReport(projectRoot: string, format: ReportFormat, data: ReportData): Promise<string | null> {
   if (format === 'none') return null;
 
   let content: string;

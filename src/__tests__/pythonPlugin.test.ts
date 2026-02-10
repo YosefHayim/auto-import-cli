@@ -67,19 +67,19 @@ from json import dumps`;
     it('should detect PascalCase class instantiation', () => {
       const content = `result = MyClass(arg1, arg2)`;
       const ids = plugin.findUsedIdentifiers(content, 'test.py');
-      expect(ids.some(id => id.name === 'MyClass')).toBe(true);
+      expect(ids.some((id) => id.name === 'MyClass')).toBe(true);
     });
 
     it('should detect snake_case function calls', () => {
       const content = `value = calculate_total(items, tax)`;
       const ids = plugin.findUsedIdentifiers(content, 'test.py');
-      expect(ids.some(id => id.name === 'calculate_total')).toBe(true);
+      expect(ids.some((id) => id.name === 'calculate_total')).toBe(true);
     });
 
     it('should detect type annotations', () => {
       const content = `user: UserModel = get_user()`;
       const ids = plugin.findUsedIdentifiers(content, 'test.py');
-      expect(ids.some(id => id.name === 'UserModel')).toBe(true);
+      expect(ids.some((id) => id.name === 'UserModel')).toBe(true);
     });
 
     it('should not detect Python builtins', () => {
@@ -88,10 +88,10 @@ y = str(num)
 z = list(items)
 e = ValueError("bad")`;
       const ids = plugin.findUsedIdentifiers(content, 'test.py');
-      expect(ids.some(id => id.name === 'int')).toBe(false);
-      expect(ids.some(id => id.name === 'str')).toBe(false);
-      expect(ids.some(id => id.name === 'list')).toBe(false);
-      expect(ids.some(id => id.name === 'ValueError')).toBe(false);
+      expect(ids.some((id) => id.name === 'int')).toBe(false);
+      expect(ids.some((id) => id.name === 'str')).toBe(false);
+      expect(ids.some((id) => id.name === 'list')).toBe(false);
+      expect(ids.some((id) => id.name === 'ValueError')).toBe(false);
     });
 
     it('should not detect Python keyword functions', () => {
@@ -100,18 +100,18 @@ n = len(items)
 r = range(10)
 s = sorted(data)`;
       const ids = plugin.findUsedIdentifiers(content, 'test.py');
-      expect(ids.some(id => id.name === 'print')).toBe(false);
-      expect(ids.some(id => id.name === 'len')).toBe(false);
-      expect(ids.some(id => id.name === 'range')).toBe(false);
-      expect(ids.some(id => id.name === 'sorted')).toBe(false);
+      expect(ids.some((id) => id.name === 'print')).toBe(false);
+      expect(ids.some((id) => id.name === 'len')).toBe(false);
+      expect(ids.some((id) => id.name === 'range')).toBe(false);
+      expect(ids.some((id) => id.name === 'sorted')).toBe(false);
     });
 
     it('should not detect method calls on objects', () => {
       const content = `result = obj.some_method(arg)
 data = response.json()`;
       const ids = plugin.findUsedIdentifiers(content, 'test.py');
-      expect(ids.some(id => id.name === 'some_method')).toBe(false);
-      expect(ids.some(id => id.name === 'json')).toBe(false);
+      expect(ids.some((id) => id.name === 'some_method')).toBe(false);
+      expect(ids.some((id) => id.name === 'json')).toBe(false);
     });
 
     it('should not detect identifiers on comment or import lines', () => {
@@ -120,8 +120,8 @@ import json
 from os import path
 actual_call(arg)`;
       const ids = plugin.findUsedIdentifiers(content, 'test.py');
-      expect(ids.some(id => id.name === 'MyClass')).toBe(false);
-      expect(ids.some(id => id.name === 'actual_call')).toBe(true);
+      expect(ids.some((id) => id.name === 'MyClass')).toBe(false);
+      expect(ids.some((id) => id.name === 'actual_call')).toBe(true);
     });
 
     it('should not detect Python language keywords as identifiers', () => {
@@ -136,10 +136,11 @@ actual_call(arg)`;
 
   describe('parseExports', () => {
     it('should detect top-level function definitions', () => {
-      const content = 'def calculate_total(items, tax):\n    return sum(items) * tax\n\ndef format_currency(amount):\n    return amount';
+      const content =
+        'def calculate_total(items, tax):\n    return sum(items) * tax\n\ndef format_currency(amount):\n    return amount';
       const exports = plugin.parseExports(content, '/project/utils.py');
-      expect(exports.some(e => e.name === 'calculate_total')).toBe(true);
-      expect(exports.some(e => e.name === 'format_currency')).toBe(true);
+      expect(exports.some((e) => e.name === 'calculate_total')).toBe(true);
+      expect(exports.some((e) => e.name === 'format_currency')).toBe(true);
     });
 
     it('should detect top-level class definitions', () => {
@@ -150,8 +151,8 @@ actual_call(arg)`;
 class ProductService(BaseService):
     pass`;
       const exports = plugin.parseExports(content, '/project/models.py');
-      expect(exports.some(e => e.name === 'UserModel')).toBe(true);
-      expect(exports.some(e => e.name === 'ProductService')).toBe(true);
+      expect(exports.some((e) => e.name === 'UserModel')).toBe(true);
+      expect(exports.some((e) => e.name === 'ProductService')).toBe(true);
     });
 
     it('should detect CONSTANT_ASSIGNMENTS', () => {
@@ -159,9 +160,9 @@ class ProductService(BaseService):
 DEFAULT_TIMEOUT = 30
 API_BASE_URL = "https://api.example.com"`;
       const exports = plugin.parseExports(content, '/project/config.py');
-      expect(exports.some(e => e.name === 'MAX_RETRIES')).toBe(true);
-      expect(exports.some(e => e.name === 'DEFAULT_TIMEOUT')).toBe(true);
-      expect(exports.some(e => e.name === 'API_BASE_URL')).toBe(true);
+      expect(exports.some((e) => e.name === 'MAX_RETRIES')).toBe(true);
+      expect(exports.some((e) => e.name === 'DEFAULT_TIMEOUT')).toBe(true);
+      expect(exports.some((e) => e.name === 'API_BASE_URL')).toBe(true);
     });
 
     it('should not detect private functions (underscore prefix)', () => {
@@ -174,9 +175,9 @@ def _private_helper():
 def __double_private():
     pass`;
       const exports = plugin.parseExports(content, '/project/utils.py');
-      expect(exports.some(e => e.name === 'public_func')).toBe(true);
-      expect(exports.some(e => e.name === '_private_helper')).toBe(false);
-      expect(exports.some(e => e.name === '__double_private')).toBe(false);
+      expect(exports.some((e) => e.name === 'public_func')).toBe(true);
+      expect(exports.some((e) => e.name === '_private_helper')).toBe(false);
+      expect(exports.some((e) => e.name === '__double_private')).toBe(false);
     });
 
     it('should not detect private classes', () => {
@@ -186,8 +187,8 @@ def __double_private():
 class _InternalClass:
     pass`;
       const exports = plugin.parseExports(content, '/project/models.py');
-      expect(exports.some(e => e.name === 'PublicClass')).toBe(true);
-      expect(exports.some(e => e.name === '_InternalClass')).toBe(false);
+      expect(exports.some((e) => e.name === 'PublicClass')).toBe(true);
+      expect(exports.some((e) => e.name === '_InternalClass')).toBe(false);
     });
 
     it('should not detect indented defs (class methods)', () => {
@@ -200,10 +201,10 @@ class _InternalClass:
 def top_level_func():
     pass`;
       const exports = plugin.parseExports(content, '/project/service.py');
-      expect(exports.some(e => e.name === 'method_one')).toBe(false);
-      expect(exports.some(e => e.name === 'method_two')).toBe(false);
-      expect(exports.some(e => e.name === 'top_level_func')).toBe(true);
-      expect(exports.some(e => e.name === 'MyClass')).toBe(true);
+      expect(exports.some((e) => e.name === 'method_one')).toBe(false);
+      expect(exports.some((e) => e.name === 'method_two')).toBe(false);
+      expect(exports.some((e) => e.name === 'top_level_func')).toBe(true);
+      expect(exports.some((e) => e.name === 'MyClass')).toBe(true);
     });
 
     it('should filter exports by __all__ when present (list with single quotes)', () => {
@@ -500,9 +501,9 @@ SomeFunction(arg) is called.
 """
 actual_call(arg)`;
       const ids = plugin.findUsedIdentifiers(content, 'test.py');
-      expect(ids.some(id => id.name === 'MyClass')).toBe(false);
-      expect(ids.some(id => id.name === 'SomeFunction')).toBe(false);
-      expect(ids.some(id => id.name === 'actual_call')).toBe(true);
+      expect(ids.some((id) => id.name === 'MyClass')).toBe(false);
+      expect(ids.some((id) => id.name === 'SomeFunction')).toBe(false);
+      expect(ids.some((id) => id.name === 'actual_call')).toBe(true);
     });
 
     it('should not detect identifiers inside triple-single-quoted strings', () => {
@@ -511,8 +512,8 @@ MyClass is documented here.
 '''
 real_func(x)`;
       const ids = plugin.findUsedIdentifiers(content, 'test.py');
-      expect(ids.some(id => id.name === 'MyClass')).toBe(false);
-      expect(ids.some(id => id.name === 'real_func')).toBe(true);
+      expect(ids.some((id) => id.name === 'MyClass')).toBe(false);
+      expect(ids.some((id) => id.name === 'real_func')).toBe(true);
     });
   });
 
@@ -521,14 +522,14 @@ real_func(x)`;
       const content = `class MyService(BaseService):
     pass`;
       const ids = plugin.findUsedIdentifiers(content, 'test.py');
-      expect(ids.some(id => id.name === 'MyService')).toBe(false);
+      expect(ids.some((id) => id.name === 'MyService')).toBe(false);
     });
 
     it('should not detect def declaration as usage', () => {
       const content = `def process_data(items):
     return items`;
       const ids = plugin.findUsedIdentifiers(content, 'test.py');
-      expect(ids.some(id => id.name === 'process_data')).toBe(false);
+      expect(ids.some((id) => id.name === 'process_data')).toBe(false);
     });
   });
 });

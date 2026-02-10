@@ -1,13 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs/promises';
 
-import {
-  detectFileExtensions,
-  generateConfig,
-  loadConfigFile,
-  detectHusky,
-  readPackageJson,
-} from '@/cli/wizardUtils';
+import { detectFileExtensions, generateConfig, loadConfigFile, detectHusky, readPackageJson } from '@/cli/wizardUtils';
 
 describe('SetupWizard utilities', () => {
   describe('detectFileExtensions', () => {
@@ -70,7 +64,7 @@ describe('SetupWizard utilities', () => {
 
     it('should deduplicate ignore patterns', () => {
       const config = generateConfig({ extensions: ['.ts'], ignore: ['**/node_modules/**'], useAliases: true });
-      const count = config.ignore.filter(i => i === '**/node_modules/**').length;
+      const count = config.ignore.filter((i) => i === '**/node_modules/**').length;
       expect(count).toBe(1);
     });
 
@@ -85,7 +79,11 @@ describe('SetupWizard utilities', () => {
     const tmpPath = path.resolve('tests/.tmp-test-config.json');
 
     afterEach(async () => {
-      try { await fs.unlink(tmpPath); } catch { /* cleanup */ }
+      try {
+        await fs.unlink(tmpPath);
+      } catch {
+        /* cleanup */
+      }
     });
 
     it('should return null for non-existent file', async () => {

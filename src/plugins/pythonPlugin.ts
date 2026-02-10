@@ -17,7 +17,10 @@ export class PythonPlugin implements LanguagePlugin {
 
     const fromImportRegex = /^from\s+([\w.]+)\s+import\s+(.+)$/gm;
     while ((match = fromImportRegex.exec(normalized)) !== null) {
-      const names = match[2].split(',').map(s => s.trim()).filter(s => s.length > 0 && s !== '\\');
+      const names = match[2]
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0 && s !== '\\');
       imports.push({ source: match[1], imports: names, isDefault: false });
     }
 
@@ -37,9 +40,14 @@ export class PythonPlugin implements LanguagePlugin {
 
     lines.forEach((line, lineIndex) => {
       const trimmed = line.trim();
-      if (trimmed.startsWith('#') || trimmed.startsWith('import ') ||
-          trimmed.startsWith('from ') || trimmed === '' ||
-          trimmed.startsWith('class ') || trimmed.startsWith('def ')) {
+      if (
+        trimmed.startsWith('#') ||
+        trimmed.startsWith('import ') ||
+        trimmed.startsWith('from ') ||
+        trimmed === '' ||
+        trimmed.startsWith('class ') ||
+        trimmed.startsWith('def ')
+      ) {
         return;
       }
 
@@ -191,7 +199,7 @@ export class PythonPlugin implements LanguagePlugin {
     const parts = modulePath.split('/');
     const srcIdx = parts.indexOf('src');
     const libIdx = parts.indexOf('lib');
-    const startIdx = srcIdx >= 0 ? srcIdx + 1 : (libIdx >= 0 ? libIdx + 1 : -1);
+    const startIdx = srcIdx >= 0 ? srcIdx + 1 : libIdx >= 0 ? libIdx + 1 : -1;
 
     if (startIdx > 0) {
       const result = parts.slice(startIdx);
@@ -211,28 +219,125 @@ export class PythonPlugin implements LanguagePlugin {
 }
 
 const PYTHON_BUILTINS = new Set([
-  'int', 'float', 'str', 'bool', 'list', 'dict', 'set', 'tuple', 'bytes',
-  'bytearray', 'memoryview', 'range', 'slice', 'frozenset', 'complex',
-  'type', 'object', 'None', 'True', 'False', 'Ellipsis', 'NotImplemented',
-  'Exception', 'BaseException', 'ValueError', 'TypeError', 'KeyError',
-  'IndexError', 'AttributeError', 'ImportError', 'FileNotFoundError',
-  'RuntimeError', 'StopIteration', 'OSError', 'IOError', 'NameError',
-  'ZeroDivisionError', 'OverflowError', 'AssertionError',
+  'int',
+  'float',
+  'str',
+  'bool',
+  'list',
+  'dict',
+  'set',
+  'tuple',
+  'bytes',
+  'bytearray',
+  'memoryview',
+  'range',
+  'slice',
+  'frozenset',
+  'complex',
+  'type',
+  'object',
+  'None',
+  'True',
+  'False',
+  'Ellipsis',
+  'NotImplemented',
+  'Exception',
+  'BaseException',
+  'ValueError',
+  'TypeError',
+  'KeyError',
+  'IndexError',
+  'AttributeError',
+  'ImportError',
+  'FileNotFoundError',
+  'RuntimeError',
+  'StopIteration',
+  'OSError',
+  'IOError',
+  'NameError',
+  'ZeroDivisionError',
+  'OverflowError',
+  'AssertionError',
 ]);
 
 const PYTHON_KEYWORDS = new Set([
-  'print', 'len', 'range', 'enumerate', 'zip', 'map', 'filter', 'sorted',
-  'reversed', 'any', 'all', 'min', 'max', 'sum', 'abs', 'round',
-  'isinstance', 'issubclass', 'hasattr', 'getattr', 'setattr', 'delattr',
-  'super', 'property', 'staticmethod', 'classmethod', 'id', 'hash',
-  'repr', 'iter', 'next', 'open', 'input', 'vars', 'dir', 'globals',
-  'locals', 'eval', 'exec', 'compile', 'format', 'chr', 'ord', 'hex',
-  'oct', 'bin',
+  'print',
+  'len',
+  'range',
+  'enumerate',
+  'zip',
+  'map',
+  'filter',
+  'sorted',
+  'reversed',
+  'any',
+  'all',
+  'min',
+  'max',
+  'sum',
+  'abs',
+  'round',
+  'isinstance',
+  'issubclass',
+  'hasattr',
+  'getattr',
+  'setattr',
+  'delattr',
+  'super',
+  'property',
+  'staticmethod',
+  'classmethod',
+  'id',
+  'hash',
+  'repr',
+  'iter',
+  'next',
+  'open',
+  'input',
+  'vars',
+  'dir',
+  'globals',
+  'locals',
+  'eval',
+  'exec',
+  'compile',
+  'format',
+  'chr',
+  'ord',
+  'hex',
+  'oct',
+  'bin',
 ]);
 
 const PYTHON_COMMON_METHODS = new Set([
-  'self', 'cls', 'if', 'else', 'elif', 'for', 'while', 'return',
-  'yield', 'with', 'as', 'try', 'except', 'finally', 'raise', 'assert',
-  'pass', 'break', 'continue', 'del', 'in', 'not', 'and', 'or', 'is',
-  'lambda', 'global', 'nonlocal', 'async', 'await',
+  'self',
+  'cls',
+  'if',
+  'else',
+  'elif',
+  'for',
+  'while',
+  'return',
+  'yield',
+  'with',
+  'as',
+  'try',
+  'except',
+  'finally',
+  'raise',
+  'assert',
+  'pass',
+  'break',
+  'continue',
+  'del',
+  'in',
+  'not',
+  'and',
+  'or',
+  'is',
+  'lambda',
+  'global',
+  'nonlocal',
+  'async',
+  'await',
 ]);

@@ -8,7 +8,7 @@ describe('JsTsPlugin', () => {
       const content = `import { useState, useEffect } from 'react';`;
       const imports = plugin.parseImports(content, 'test.ts');
       expect(imports.length).toBeGreaterThanOrEqual(1);
-      const reactImport = imports.find(i => i.source === 'react');
+      const reactImport = imports.find((i) => i.source === 'react');
       expect(reactImport).toBeDefined();
     });
 
@@ -35,16 +35,16 @@ const msg = ref('hello');
   return <Card><Button>Click</Button></Card>;
 }`;
       const ids = plugin.findUsedIdentifiers(content, 'test.tsx');
-      expect(ids.some(id => id.name === 'Card')).toBe(true);
-      expect(ids.some(id => id.name === 'Button')).toBe(true);
+      expect(ids.some((id) => id.name === 'Card')).toBe(true);
+      expect(ids.some((id) => id.name === 'Button')).toBe(true);
     });
 
     it('should detect function calls', () => {
       const content = `const result = formatName('John');
 const valid = validateEmail('test@test.com');`;
       const ids = plugin.findUsedIdentifiers(content, 'test.ts');
-      expect(ids.some(id => id.name === 'formatName')).toBe(true);
-      expect(ids.some(id => id.name === 'validateEmail')).toBe(true);
+      expect(ids.some((id) => id.name === 'formatName')).toBe(true);
+      expect(ids.some((id) => id.name === 'validateEmail')).toBe(true);
     });
 
     it('should not detect JS builtins', () => {
@@ -52,9 +52,9 @@ const valid = validateEmail('test@test.com');`;
 const obj = Object.keys(data);
 const p = Promise.resolve(42);`;
       const ids = plugin.findUsedIdentifiers(content, 'test.ts');
-      expect(ids.some(id => id.name === 'Array')).toBe(false);
-      expect(ids.some(id => id.name === 'Object')).toBe(false);
-      expect(ids.some(id => id.name === 'Promise')).toBe(false);
+      expect(ids.some((id) => id.name === 'Array')).toBe(false);
+      expect(ids.some((id) => id.name === 'Object')).toBe(false);
+      expect(ids.some((id) => id.name === 'Promise')).toBe(false);
     });
   });
 
@@ -62,37 +62,37 @@ const p = Promise.resolve(42);`;
     it('should detect export function', () => {
       const content = `export function myFunc() {}`;
       const exports = plugin.parseExports(content, 'test.ts');
-      expect(exports.some(e => e.name === 'myFunc')).toBe(true);
+      expect(exports.some((e) => e.name === 'myFunc')).toBe(true);
     });
 
     it('should detect export async function', () => {
       const content = `export async function fetchData() {}`;
       const exports = plugin.parseExports(content, 'test.ts');
-      expect(exports.some(e => e.name === 'fetchData')).toBe(true);
+      expect(exports.some((e) => e.name === 'fetchData')).toBe(true);
     });
 
     it('should detect export const', () => {
       const content = `export const API_URL = 'http://example.com';`;
       const exports = plugin.parseExports(content, 'test.ts');
-      expect(exports.some(e => e.name === 'API_URL')).toBe(true);
+      expect(exports.some((e) => e.name === 'API_URL')).toBe(true);
     });
 
     it('should detect export class', () => {
       const content = `export class UserService {}`;
       const exports = plugin.parseExports(content, 'test.ts');
-      expect(exports.some(e => e.name === 'UserService')).toBe(true);
+      expect(exports.some((e) => e.name === 'UserService')).toBe(true);
     });
 
     it('should detect export default function with name', () => {
       const content = `export default function MyComponent() {}`;
       const exports = plugin.parseExports(content, 'test.tsx');
-      expect(exports.some(e => e.name === 'MyComponent' && e.isDefault)).toBe(true);
+      expect(exports.some((e) => e.name === 'MyComponent' && e.isDefault)).toBe(true);
     });
 
     it('should detect export default class with name', () => {
       const content = `export default class AppController {}`;
       const exports = plugin.parseExports(content, 'test.ts');
-      expect(exports.some(e => e.name === 'AppController' && e.isDefault)).toBe(true);
+      expect(exports.some((e) => e.name === 'AppController' && e.isDefault)).toBe(true);
     });
 
     it('should detect named exports with braces', () => {
@@ -100,14 +100,14 @@ const p = Promise.resolve(42);`;
 const bar = 2;
 export { foo, bar };`;
       const exports = plugin.parseExports(content, 'test.ts');
-      expect(exports.some(e => e.name === 'foo')).toBe(true);
-      expect(exports.some(e => e.name === 'bar')).toBe(true);
+      expect(exports.some((e) => e.name === 'foo')).toBe(true);
+      expect(exports.some((e) => e.name === 'bar')).toBe(true);
     });
 
     it('should detect export interface with isType flag', () => {
       const content = `export interface UserProps { name: string; }`;
       const exports = plugin.parseExports(content, 'test.ts');
-      const match = exports.find(e => e.name === 'UserProps');
+      const match = exports.find((e) => e.name === 'UserProps');
       expect(match).toBeDefined();
       expect(match!.isType).toBe(true);
     });
@@ -115,7 +115,7 @@ export { foo, bar };`;
     it('should detect export type with isType flag', () => {
       const content = `export type UserId = string;`;
       const exports = plugin.parseExports(content, 'test.ts');
-      const match = exports.find(e => e.name === 'UserId');
+      const match = exports.find((e) => e.name === 'UserId');
       expect(match).toBeDefined();
       expect(match!.isType).toBe(true);
     });
@@ -195,14 +195,14 @@ const msg = ref('hello');
       const content = `import type { User } from './models';
 import { Card } from './Card';`;
       const imports = plugin.parseImports(content, 'test.ts');
-      expect(imports.some(i => i.source === './Card')).toBe(true);
+      expect(imports.some((i) => i.source === './Card')).toBe(true);
     });
 
     it('should parse namespace imports', () => {
       const content = `import * as utils from './utils';`;
       const imports = plugin.parseImports(content, 'test.ts');
       expect(imports.length).toBeGreaterThanOrEqual(1);
-      const match = imports.find(i => i.source === './utils');
+      const match = imports.find((i) => i.source === './utils');
       expect(match).toBeDefined();
       expect(match!.isNamespace).toBe(true);
     });
@@ -210,15 +210,15 @@ import { Card } from './Card';`;
     it('should parse multiple imports on same line separated by semicolons', () => {
       const content = `import { A } from 'a'; import { B } from 'b';`;
       const imports = plugin.parseImports(content, 'test.ts');
-      expect(imports.some(i => i.source === 'a')).toBe(true);
-      expect(imports.some(i => i.source === 'b')).toBe(true);
+      expect(imports.some((i) => i.source === 'a')).toBe(true);
+      expect(imports.some((i) => i.source === 'b')).toBe(true);
     });
 
     it('should handle side-effect import without crashing', () => {
       const content = `import 'side-effects';
 import { foo } from 'bar';`;
       const imports = plugin.parseImports(content, 'test.ts');
-      expect(imports.some(i => i.source === 'bar')).toBe(true);
+      expect(imports.some((i) => i.source === 'bar')).toBe(true);
     });
   });
 
@@ -226,13 +226,13 @@ import { foo } from 'bar';`;
     it('should detect aliased exports', () => {
       const content = `export { X as Y };`;
       const exports = plugin.parseExports(content, 'test.ts');
-      expect(exports.some(e => e.name === 'Y')).toBe(true);
+      expect(exports.some((e) => e.name === 'Y')).toBe(true);
     });
 
     it('should detect re-exports', () => {
       const content = `export { X } from './other';`;
       const exports = plugin.parseExports(content, 'test.ts');
-      expect(exports.some(e => e.name === 'X')).toBe(true);
+      expect(exports.some((e) => e.name === 'X')).toBe(true);
     });
 
     it('should not crash on export enum', () => {
@@ -288,21 +288,21 @@ import { foo } from 'bar';`;
     it('should not split hasError into Error via as-regex', () => {
       const content = `export { hasError };`;
       const exports = plugin.parseExports(content, 'test.ts');
-      expect(exports.some(e => e.name === 'hasError')).toBe(true);
-      expect(exports.some(e => e.name === 'Error')).toBe(false);
+      expect(exports.some((e) => e.name === 'hasError')).toBe(true);
+      expect(exports.some((e) => e.name === 'Error')).toBe(false);
     });
 
     it('should correctly handle actual as-alias with whitespace', () => {
       const content = `export { foo as bar };`;
       const exports = plugin.parseExports(content, 'test.ts');
-      expect(exports.some(e => e.name === 'bar')).toBe(true);
-      expect(exports.some(e => e.name === 'foo')).toBe(false);
+      expect(exports.some((e) => e.name === 'bar')).toBe(true);
+      expect(exports.some((e) => e.name === 'foo')).toBe(false);
     });
 
     it('should handle className without splitting on "as"', () => {
       const content = `export { baseClass };`;
       const exports = plugin.parseExports(content, 'test.ts');
-      expect(exports.some(e => e.name === 'baseClass')).toBe(true);
+      expect(exports.some((e) => e.name === 'baseClass')).toBe(true);
     });
   });
 
@@ -310,21 +310,21 @@ import { foo } from 'bar';`;
     it('should strip type modifier from named exports', () => {
       const content = `export { type Foo, type Bar };`;
       const exports = plugin.parseExports(content, 'test.ts');
-      expect(exports.some(e => e.name === 'Foo')).toBe(true);
-      expect(exports.some(e => e.name === 'Bar')).toBe(true);
+      expect(exports.some((e) => e.name === 'Foo')).toBe(true);
+      expect(exports.some((e) => e.name === 'Bar')).toBe(true);
     });
 
     it('should strip type modifier from aliased exports', () => {
       const content = `export { type Foo as MyFoo };`;
       const exports = plugin.parseExports(content, 'test.ts');
-      expect(exports.some(e => e.name === 'MyFoo')).toBe(true);
+      expect(exports.some((e) => e.name === 'MyFoo')).toBe(true);
     });
 
     it('should handle mixed type and value exports', () => {
       const content = `export { type UserType, createUser };`;
       const exports = plugin.parseExports(content, 'test.ts');
-      expect(exports.some(e => e.name === 'UserType')).toBe(true);
-      expect(exports.some(e => e.name === 'createUser')).toBe(true);
+      expect(exports.some((e) => e.name === 'UserType')).toBe(true);
+      expect(exports.some((e) => e.name === 'createUser')).toBe(true);
     });
   });
 
@@ -332,19 +332,19 @@ import { foo } from 'bar';`;
     it('should detect export default async function with name', () => {
       const content = `export default async function fetchData() {}`;
       const exports = plugin.parseExports(content, 'test.ts');
-      expect(exports.some(e => e.name === 'fetchData' && e.isDefault)).toBe(true);
+      expect(exports.some((e) => e.name === 'fetchData' && e.isDefault)).toBe(true);
     });
 
     it('should still detect export default function (non-async)', () => {
       const content = `export default function MyComponent() {}`;
       const exports = plugin.parseExports(content, 'test.tsx');
-      expect(exports.some(e => e.name === 'MyComponent' && e.isDefault)).toBe(true);
+      expect(exports.some((e) => e.name === 'MyComponent' && e.isDefault)).toBe(true);
     });
 
     it('should still detect export default class', () => {
       const content = `export default class AppController {}`;
       const exports = plugin.parseExports(content, 'test.ts');
-      expect(exports.some(e => e.name === 'AppController' && e.isDefault)).toBe(true);
+      expect(exports.some((e) => e.name === 'AppController' && e.isDefault)).toBe(true);
     });
   });
 
@@ -356,8 +356,8 @@ export function helper() {}
 export const API_URL = 'http://example.com';
 </script>`;
       const exports = plugin.parseExports(content, 'test.vue');
-      expect(exports.some(e => e.name === 'helper')).toBe(true);
-      expect(exports.some(e => e.name === 'API_URL')).toBe(true);
+      expect(exports.some((e) => e.name === 'helper')).toBe(true);
+      expect(exports.some((e) => e.name === 'API_URL')).toBe(true);
     });
 
     it('should detect exports from Svelte script block', () => {
@@ -366,7 +366,7 @@ export function formatValue(v) { return v; }
 </script>
 <button>Click</button>`;
       const exports = plugin.parseExports(content, 'test.svelte');
-      expect(exports.some(e => e.name === 'formatValue')).toBe(true);
+      expect(exports.some((e) => e.name === 'formatValue')).toBe(true);
     });
   });
 
@@ -378,7 +378,7 @@ let count = 0;
 </script>
 <button>{count}</button>`;
       const imports = plugin.parseImports(content, 'test.svelte');
-      expect(imports.some(i => i.source === 'svelte')).toBe(true);
+      expect(imports.some((i) => i.source === 'svelte')).toBe(true);
     });
 
     it('should detect function calls in Svelte script section', () => {
@@ -389,7 +389,7 @@ const result = formatValue(count);
 </script>
 <button>{count}</button>`;
       const ids = plugin.findUsedIdentifiers(content, 'test.svelte');
-      expect(ids.some(id => id.name === 'formatValue')).toBe(true);
+      expect(ids.some((id) => id.name === 'formatValue')).toBe(true);
     });
   });
 
@@ -401,7 +401,7 @@ const title = 'Hello';
 ---
 <Card>{title}</Card>`;
       const imports = plugin.parseImports(content, 'test.astro');
-      expect(imports.some(i => i.source === './Card.astro')).toBe(true);
+      expect(imports.some((i) => i.source === './Card.astro')).toBe(true);
     });
 
     it('should detect identifiers in Astro frontmatter', () => {
@@ -411,7 +411,7 @@ const data = fetchData();
 ---
 <Card>{data}</Card>`;
       const ids = plugin.findUsedIdentifiers(content, 'test.astro');
-      expect(ids.some(id => id.name === 'fetchData')).toBe(true);
+      expect(ids.some((id) => id.name === 'fetchData')).toBe(true);
     });
   });
 });

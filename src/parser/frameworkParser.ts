@@ -17,7 +17,7 @@ export class FrameworkParser {
    */
   parseFrameworkFile(content: string, ext: string): FrameworkParseResult {
     const framework = this.detectFramework(ext);
-    
+
     if (!framework) {
       return {
         scriptContent: content,
@@ -28,7 +28,7 @@ export class FrameworkParser {
     }
 
     const extraction = this.extractScriptSection(content, framework);
-    
+
     return {
       ...extraction,
       isFrameworkFile: true,
@@ -51,7 +51,7 @@ export class FrameworkParser {
 
   private extractScriptSection(
     content: string,
-    framework: 'vue' | 'svelte' | 'astro'
+    framework: 'vue' | 'svelte' | 'astro',
   ): { scriptContent: string; scriptStart: number; scriptEnd: number } {
     switch (framework) {
       case 'vue':
@@ -180,11 +180,7 @@ export class FrameworkParser {
   /**
    * Insert imports into the correct location within a framework file
    */
-  insertImportsIntoFramework(
-    originalContent: string,
-    imports: string[],
-    parseResult: FrameworkParseResult
-  ): string {
+  insertImportsIntoFramework(originalContent: string, imports: string[], parseResult: FrameworkParseResult): string {
     if (!parseResult.isFrameworkFile || imports.length === 0) {
       return originalContent;
     }

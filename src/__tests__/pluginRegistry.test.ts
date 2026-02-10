@@ -84,11 +84,11 @@ describe('Plugin Registry', () => {
     it('should return all 5 default plugins', () => {
       const plugins = getDefaultPlugins();
       expect(plugins).toHaveLength(5);
-      expect(plugins.some(p => p instanceof JsTsPlugin)).toBe(true);
-      expect(plugins.some(p => p instanceof PythonPlugin)).toBe(true);
-      expect(plugins.some(p => p instanceof ElixirPlugin)).toBe(true);
-      expect(plugins.some(p => p instanceof GoPlugin)).toBe(true);
-      expect(plugins.some(p => p instanceof RustPlugin)).toBe(true);
+      expect(plugins.some((p) => p instanceof JsTsPlugin)).toBe(true);
+      expect(plugins.some((p) => p instanceof PythonPlugin)).toBe(true);
+      expect(plugins.some((p) => p instanceof ElixirPlugin)).toBe(true);
+      expect(plugins.some((p) => p instanceof GoPlugin)).toBe(true);
+      expect(plugins.some((p) => p instanceof RustPlugin)).toBe(true);
     });
     it('FIX 14: should return a new array each time (not mutable reference)', () => {
       const plugins1 = getDefaultPlugins();
