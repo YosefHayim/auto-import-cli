@@ -40,5 +40,8 @@ progress-project.md
 # Debug logs
 firebase-debug.log
 
+# Generated reports
+import-pilot-report.*
+
 # Bun
 bun.lock
